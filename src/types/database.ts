@@ -141,6 +141,7 @@ export interface Profile {
   phone: string | null;
   cpf: string | null;
   birth_date: string | null;
+  is_admin: boolean;
   created_at: string;
   updated_at: string;
 }

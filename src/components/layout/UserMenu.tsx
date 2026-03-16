@@ -2,21 +2,37 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { User, ShoppingBag, Settings, LogOut, ChevronDown, LogIn } from "lucide-react";
+import { User, ShoppingBag, Settings, LogOut, ChevronDown, LogIn, LayoutDashboard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export default function UserMenu() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+
+    async function loadUser() {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", data.user.id)
+          .single();
+        setIsAdmin(profile?.is_admin ?? false);
+      }
+    }
+
+    loadUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
+      if (!session?.user) setIsAdmin(false);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -66,6 +82,7 @@ export default function UserMenu() {
           </div>
 
           {[
+            ...(isAdmin ? [{ href: "/admin", label: "Painel Admin", icon: LayoutDashboard }] : []),
             { href: "/conta", label: "Visão geral", icon: User },
             { href: "/conta/pedidos", label: "Meus pedidos", icon: ShoppingBag },
             { href: "/conta/perfil", label: "Meu perfil", icon: Settings },
