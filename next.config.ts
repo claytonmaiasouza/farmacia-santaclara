@@ -6,7 +6,15 @@ const nextConfig: NextConfig = {
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
-      // Adicionar domínios de imagens externas aqui quando necessário
+      {
+        protocol: "https",
+        hostname: "zphc-store.com",
+        pathname: "/wp-content/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "placehold.co",
+      },
     ],
   },
 };
