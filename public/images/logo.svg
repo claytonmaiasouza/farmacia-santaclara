@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 130" fill="none">
+  <!-- Arco verde -->
+  <path d="M 62 12 A 52 52 0 1 0 62 118" stroke="#6DC040" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- Cruz azul -->
+  <rect x="38" y="42" width="16" height="46" rx="4" fill="#2B7DD4"/>
+  <rect x="22" y="57" width="48" height="16" rx="4" fill="#2B7DD4"/>
+  <!-- Folha esquerda -->
+  <path d="M 53 34 Q 56 20 66 18 Q 62 30 53 34 Z" fill="#6DC040"/>
+  <!-- Folha direita -->
+  <path d="M 66 18 Q 76 16 79 28 Q 68 26 66 18 Z" fill="#4a9e2a"/>
+  <!-- Texto Santa -->
+  <text x="115" y="62" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="400" fill="#2E7D32" letter-spacing="-0.5">Santa</text>
+  <!-- Texto Clara -->
+  <text x="115" y="102" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="700" fill="#1A5C2A" letter-spacing="-0.5">Clara</text>
+</svg>
