@@ -44,26 +44,33 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setError(
-        error.message.includes("already registered")
-          ? "Este e-mail já está cadastrado."
-          : "Erro ao criar conta. Tente novamente."
-      );
+      if (error.message.includes("already registered") || error.message.includes("already been registered")) {
+        setError("Este e-mail já está cadastrado.");
+      } else if (error.message.includes("Password should be")) {
+        setError("A senha deve ter pelo menos 6 caracteres.");
+      } else if (error.message.includes("Unable to validate email")) {
+        setError("E-mail inválido. Verifique e tente novamente.");
+      } else {
+        setError(`Erro: ${error.message}`);
+      }
       setLoading(false);
       return;
     }
 
     setSuccess(true);
-    setTimeout(() => router.push("/conta"), 2000);
+    setTimeout(() => router.push("/login?cadastro=ok"), 2000);
   }
 
   if (success) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-sm px-4">
           <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-[#1a202c]">Conta criada!</h2>
-          <p className="text-[#718096] mt-1 text-sm">Redirecionando...</p>
+          <h2 className="text-xl font-bold text-[#1a202c]">Conta criada com sucesso!</h2>
+          <p className="text-[#718096] mt-2 text-sm">
+            Verifique seu e-mail para confirmar o cadastro, depois faça login.
+          </p>
+          <p className="text-[#718096] mt-1 text-xs">Redirecionando para o login...</p>
         </div>
       </div>
     );
