@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, Phone, MapPin, Menu, X } from "lucide-react";
 import CartButton from "@/components/layout/CartButton";
 import UserMenu from "@/components/layout/UserMenu";
+import ExchangeRates from "@/components/layout/ExchangeRates";
 import { useState } from "react";
 
 export default function Header() {
@@ -15,22 +16,26 @@ export default function Header() {
     <header className="w-full bg-white shadow-sm sticky top-0 z-50">
       {/* Barra superior */}
       <div className="bg-[#1A5C2A] text-white text-sm py-1.5">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-shrink-0">
             <span className="flex items-center gap-1.5">
               <Phone size={13} />
               (11) 9999-9999
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="hidden md:flex items-center gap-1.5">
               <MapPin size={13} />
               Encontre nossa loja
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/conta" className="hover:text-[#6DC040] transition-colors">
+
+          {/* Câmbio Cambios Chaco */}
+          <ExchangeRates />
+
+          <div className="flex items-center gap-4 flex-shrink-0">
+            <Link href="/conta" className="hover:text-[#6DC040] transition-colors hidden sm:block">
               Minha conta
             </Link>
-            <Link href="/pedidos" className="hover:text-[#6DC040] transition-colors">
+            <Link href="/conta/pedidos" className="hover:text-[#6DC040] transition-colors hidden sm:block">
               Meus pedidos
             </Link>
           </div>
