@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Nunito } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { CartProvider } from "@/context/CartContext";
 
 const inter = Inter({ subsets: ["latin"] });
+export const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito" });
 
 export const metadata: Metadata = {
   title: "Farmácia Santa Clara — Saúde e Bem-Estar",
@@ -21,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} bg-[#f4f6f8] min-h-screen`}>
+      <body className={`${inter.className} ${nunito.variable} bg-[#f4f6f8] min-h-screen`}>
         <CartProvider>
           <Header />
           <main className="max-w-7xl mx-auto px-4 pb-12">{children}</main>

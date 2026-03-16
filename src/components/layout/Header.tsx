@@ -39,8 +39,8 @@ export default function Header() {
 
       {/* Header principal */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6">
-        {/* Logo */}
-        <Link href="/" className="flex-shrink-0">
+        {/* Logo + nome */}
+        <Link href="/" className="flex-shrink-0 flex flex-col items-center gap-0.5">
           <Image
             src="/images/logo.png"
             alt="Farmácia Santa Clara"
@@ -48,6 +48,12 @@ export default function Header() {
             height={55}
             priority
           />
+          <span
+            className="text-sm tracking-wide"
+            style={{ fontFamily: "var(--font-nunito)", color: "#1A5C2A", fontWeight: 700, letterSpacing: "0.04em" }}
+          >
+            Farmácia <span style={{ color: "#2B7DD4" }}>Santa Clara</span>
+          </span>
         </Link>
 
         {/* Busca */}
