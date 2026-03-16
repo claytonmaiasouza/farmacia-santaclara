@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { Suspense } from "react";
 import { getCategoryBySlug } from "@/lib/queries/categories";
@@ -50,13 +51,33 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         <span className="text-[#1a202c] font-medium">{category.name}</span>
       </nav>
 
-      {/* Cabeçalho */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#1a202c]">{category.name}</h1>
-        {category.description && (
-          <p className="text-[#718096] mt-1">{category.description}</p>
-        )}
-      </div>
+      {/* Cabeçalho com banner */}
+      {category.image_url ? (
+        <div className="relative w-full h-48 rounded-2xl overflow-hidden mb-6">
+          <Image
+            src={category.image_url}
+            alt={category.name}
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/20 flex items-center px-8">
+            <div>
+              <h1 className="text-3xl font-bold text-white">{category.name}</h1>
+              {category.description && (
+                <p className="text-white/80 mt-1 text-sm max-w-lg">{category.description}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-[#1a202c]">{category.name}</h1>
+          {category.description && (
+            <p className="text-[#718096] mt-1">{category.description}</p>
+          )}
+        </div>
+      )}
 
       {/* Filtros */}
       <Suspense>
