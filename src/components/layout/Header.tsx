@@ -102,31 +102,13 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4">
           <ul className="flex items-center gap-0">
             {navItems.map((item) => (
-              <li key={item.label} className="relative group">
+              <li key={item.label}>
                 <Link
                   href={item.href}
-                  className="flex items-center gap-1 px-4 py-3 text-sm font-medium text-[#1a202c] hover:text-[#2B7DD4] hover:bg-[#f4f6f8] transition-colors"
+                  className="flex items-center px-4 py-3 text-sm font-medium text-[#1a202c] hover:text-[#2B7DD4] hover:bg-[#f4f6f8] transition-colors"
                 >
                   {item.label}
-                  {item.children && (
-                    <svg className="w-3 h-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  )}
                 </Link>
-                {item.children && (
-                  <div className="absolute top-full left-0 bg-white shadow-lg border border-[#e2e8f0] rounded-b-xl min-w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.label}
-                        href={child.href}
-                        className="block px-4 py-2.5 text-sm text-[#1a202c] hover:bg-[#f4f6f8] hover:text-[#2B7DD4] transition-colors"
-                      >
-                        {child.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
               </li>
             ))}
 
