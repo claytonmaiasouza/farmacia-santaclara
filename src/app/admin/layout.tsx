@@ -18,8 +18,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { data: profile } = await supabase
     .from("profiles")
     .select("is_admin")
-    .eq("id", user.id)
-    .single();
+    .eq("id", user!.id)
+    .single() as { data: { is_admin: boolean } | null };
 
   if (!profile?.is_admin) redirect("/");
 

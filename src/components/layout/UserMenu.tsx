@@ -23,7 +23,7 @@ export default function UserMenu() {
           .from("profiles")
           .select("is_admin")
           .eq("id", data.user.id)
-          .single();
+          .single() as { data: { is_admin: boolean } | null };
         setIsAdmin(profile?.is_admin ?? false);
       }
     }
