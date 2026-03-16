@@ -49,8 +49,8 @@ export default function Header() {
           <Image
             src="/images/logo.png"
             alt="Farmácia Santa Clara"
-            width={180}
-            height={55}
+            width={108}
+            height={33}
             priority
           />
           <span
