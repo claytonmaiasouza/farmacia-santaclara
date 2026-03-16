@@ -1,12 +1,32 @@
 import Link from "next/link";
-import { Dna, Activity, Leaf, Zap, Package } from "lucide-react";
+import Image from "next/image";
 
 const categories = [
-  { label: "Peptídeos",            href: "/categoria/peptideos",            icon: Dna,      color: "bg-blue-50 text-[#2B7DD4]" },
-  { label: "Hormônios",            href: "/categoria/hormonios",            icon: Activity,  color: "bg-purple-50 text-purple-600" },
-  { label: "Vitaminas",            href: "/categoria/vitaminas",            icon: Leaf,      color: "bg-green-50 text-[#1A5C2A]" },
-  { label: "Suplementos",          href: "/categoria/suplementos",          icon: Zap,       color: "bg-amber-50 text-amber-600" },
-  { label: "Insumos Hospitalares", href: "/categoria/insumos-hospitalares", icon: Package,   color: "bg-red-50 text-red-500" },
+  {
+    label: "Peptídeos",
+    href: "/categoria/peptideos",
+    image: "https://images.pexels.com/photos/2280571/pexels-photo-2280571.jpeg?auto=compress&cs=tinysrgb&w=600",
+  },
+  {
+    label: "Hormônios",
+    href: "/categoria/hormonios",
+    image: "https://images.pexels.com/photos/3786157/pexels-photo-3786157.jpeg?auto=compress&cs=tinysrgb&w=600",
+  },
+  {
+    label: "Vitaminas",
+    href: "/categoria/vitaminas",
+    image: "https://images.pexels.com/photos/1005638/pexels-photo-1005638.jpeg?auto=compress&cs=tinysrgb&w=600",
+  },
+  {
+    label: "Suplementos",
+    href: "/categoria/suplementos",
+    image: "https://images.pexels.com/photos/3621168/pexels-photo-3621168.jpeg?auto=compress&cs=tinysrgb&w=600",
+  },
+  {
+    label: "Insumos Hospitalares",
+    href: "/categoria/insumos-hospitalares",
+    image: "https://images.pexels.com/photos/208512/pexels-photo-208512.jpeg?auto=compress&cs=tinysrgb&w=600",
+  },
 ];
 
 export default function CategoryGrid() {
@@ -14,16 +34,21 @@ export default function CategoryGrid() {
     <section className="mt-8">
       <h2 className="text-2xl font-bold text-[#1a202c] mb-5">Categorias</h2>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {categories.map(({ label, href, icon: Icon, color }) => (
+        {categories.map(({ label, href, image }) => (
           <Link
             key={label}
             href={href}
-            className="flex flex-col items-center gap-2.5 p-4 bg-white rounded-2xl border border-[#e2e8f0] hover:border-[#2B7DD4] hover:shadow-md transition-all group"
+            className="relative overflow-hidden rounded-2xl h-32 sm:h-40 group shadow-sm hover:shadow-lg transition-all"
           >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color} group-hover:scale-110 transition-transform`}>
-              <Icon size={22} />
-            </div>
-            <span className="text-xs font-medium text-[#1a202c] text-center leading-tight">
+            <Image
+              src={image}
+              alt={label}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              sizes="(max-width: 640px) 50vw, 20vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <span className="absolute bottom-0 left-0 right-0 text-white text-xs font-bold text-center pb-3 px-2 leading-tight drop-shadow">
               {label}
             </span>
           </Link>
