@@ -163,45 +163,9 @@ export default function Header() {
 }
 
 const navItems = [
-  {
-    label: "Medicamentos",
-    href: "/categoria/medicamentos",
-    children: [
-      { label: "Analgésicos", href: "/categoria/analgesicos" },
-      { label: "Antibióticos", href: "/categoria/antibioticos" },
-      { label: "Anti-inflamatórios", href: "/categoria/anti-inflamatorios" },
-      { label: "Genéricos", href: "/categoria/genericos" },
-    ],
-  },
-  {
-    label: "Vitaminas e Suplementos",
-    href: "/categoria/vitaminas",
-    children: [
-      { label: "Vitamina C", href: "/categoria/vitamina-c" },
-      { label: "Vitamina D", href: "/categoria/vitamina-d" },
-      { label: "Complexo B", href: "/categoria/complexo-b" },
-      { label: "Ômega 3", href: "/categoria/omega3" },
-    ],
-  },
-  {
-    label: "Dermocosméticos",
-    href: "/categoria/dermocosmeticos",
-    children: [
-      { label: "Protetor Solar", href: "/categoria/protetor-solar" },
-      { label: "Hidratantes", href: "/categoria/hidratantes" },
-      { label: "Anti-aging", href: "/categoria/anti-aging" },
-    ],
-  },
-  {
-    label: "Higiene Pessoal",
-    href: "/categoria/higiene",
-  },
-  {
-    label: "Bebê e Criança",
-    href: "/categoria/bebe",
-  },
-  {
-    label: "Perfumaria",
-    href: "/categoria/perfumaria",
-  },
+  { label: "Peptídeos",             href: "/categoria/peptideos" },
+  { label: "Hormônios",             href: "/categoria/hormonios" },
+  { label: "Vitaminas",             href: "/categoria/vitaminas" },
+  { label: "Suplementos",           href: "/categoria/suplementos" },
+  { label: "Insumos Hospitalares",  href: "/categoria/insumos-hospitalares" },
 ];

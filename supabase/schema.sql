@@ -224,10 +224,9 @@ create policy "Usuário vê itens dos próprios pedidos"
 -- DADOS INICIAIS (categorias)
 -- =============================================
 insert into categories (name, slug, sort_order) values
-  ('Medicamentos',          'medicamentos',       1),
-  ('Vitaminas e Suplementos','vitaminas',          2),
-  ('Dermocosméticos',       'dermocosmeticos',    3),
-  ('Higiene Pessoal',       'higiene',            4),
-  ('Bebê e Criança',        'bebe',               5),
-  ('Perfumaria',            'perfumaria',         6)
+  ('Peptídeos',            'peptideos',            1),
+  ('Hormônios',            'hormonios',            2),
+  ('Vitaminas',            'vitaminas',            3),
+  ('Suplementos',          'suplementos',          4),
+  ('Insumos Hospitalares', 'insumos-hospitalares', 5)
 on conflict (slug) do nothing;
