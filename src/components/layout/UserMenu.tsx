@@ -3,41 +3,16 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { User, ShoppingBag, Settings, LogOut, ChevronDown, LogIn, LayoutDashboard } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { useSession, signOut } from "next-auth/react";
 
 export default function UserMenu() {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const supabase = createClient();
+  const user = session?.user;
+  const isAdmin = !!(user as { isAdmin?: boolean } | undefined)?.isAdmin;
 
-    async function loadUser() {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
-      if (data.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_admin")
-          .eq("id", data.user.id)
-          .single() as { data: { is_admin: boolean } | null };
-        setIsAdmin(profile?.is_admin ?? false);
-      }
-    }
-
-    loadUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null);
-      if (!session?.user) setIsAdmin(false);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Fecha ao clicar fora
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -45,6 +20,10 @@ export default function UserMenu() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  if (status === "loading") {
+    return <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />;
+  }
 
   if (!user) {
     return (
@@ -58,7 +37,7 @@ export default function UserMenu() {
     );
   }
 
-  const initial = (user.user_metadata?.full_name ?? user.email ?? "U").charAt(0).toUpperCase();
+  const initial = (user.name ?? user.email ?? "U").charAt(0).toUpperCase();
 
   return (
     <div className="relative" ref={ref}>
@@ -75,9 +54,7 @@ export default function UserMenu() {
       {open && (
         <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl border border-[#e2e8f0] shadow-lg w-52 py-2 z-50">
           <div className="px-4 py-2 border-b border-[#e2e8f0] mb-1">
-            <p className="text-xs font-semibold text-[#1a202c] truncate">
-              {user.user_metadata?.full_name ?? "Minha conta"}
-            </p>
+            <p className="text-xs font-semibold text-[#1a202c] truncate">{user.name ?? "Minha conta"}</p>
             <p className="text-xs text-[#718096] truncate">{user.email}</p>
           </div>
 
@@ -99,15 +76,13 @@ export default function UserMenu() {
           ))}
 
           <div className="border-t border-[#e2e8f0] mt-1 pt-1">
-            <form action="/api/auth/logout" method="POST">
-              <button
-                type="submit"
-                className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#718096] hover:bg-red-50 hover:text-red-500 transition-colors"
-              >
-                <LogOut size={15} />
-                Sair
-              </button>
-            </form>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#718096] hover:bg-red-50 hover:text-red-500 transition-colors"
+            >
+              <LogOut size={15} />
+              Sair
+            </button>
           </div>
         </div>
       )}

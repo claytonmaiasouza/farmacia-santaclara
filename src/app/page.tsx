@@ -10,8 +10,8 @@ function mapProduct(p: Awaited<ReturnType<typeof getFeaturedProducts>>[0]): Prod
     name: p.name,
     brand: (p as { brand?: { name: string } | null }).brand?.name ?? "",
     slug: p.slug,
-    price: p.price,
-    originalPrice: p.original_price ?? undefined,
+    price: Number(p.price),
+    originalPrice: p.original_price ? Number(p.original_price) : undefined,
     image: p.image_url ?? "https://placehold.co/400x400/e8f4fd/2B7DD4?text=Produto",
   };
 }

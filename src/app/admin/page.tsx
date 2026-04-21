@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import sql from "@/lib/db";
 import { Package, ShoppingBag, DollarSign, TrendingUp } from "lucide-react";
 import type { Order } from "@/types/database";
 
@@ -13,31 +13,28 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 };
 
 export default async function AdminDashboard() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = (await createClient()) as any;
-
   const [
-    { count: totalProducts },
-    { count: totalOrders },
-    { data: revenueData },
-    { data: recentOrders },
-    { count: lowStock },
+    [{ total: totalProducts }],
+    [{ total: totalOrders }],
+    revenueData,
+    recentOrders,
+    [{ total: lowStock }],
   ] = await Promise.all([
-    db.from("products").select("*", { count: "exact", head: true }).eq("active", true),
-    db.from("orders").select("*", { count: "exact", head: true }),
-    db.from("orders").select("total").in("status", ["paid", "processing", "shipped", "delivered"]),
-    db.from("orders").select("*").order("created_at", { ascending: false }).limit(8),
-    db.from("products").select("*", { count: "exact", head: true }).lte("stock", 5).eq("active", true),
+    sql`SELECT COUNT(*) AS total FROM products WHERE active = true`,
+    sql`SELECT COUNT(*) AS total FROM orders`,
+    sql`SELECT total FROM orders WHERE status IN ('paid','processing','shipped','delivered')`,
+    sql<Order[]>`SELECT * FROM orders ORDER BY created_at DESC LIMIT 8`,
+    sql`SELECT COUNT(*) AS total FROM products WHERE stock <= 5 AND active = true`,
   ]);
 
-  const revenue = (revenueData as { total: number }[] ?? []).reduce((s: number, o: { total: number }) => s + o.total, 0);
-  const orders = (recentOrders as Order[]) ?? [];
+  const revenue = revenueData.reduce((s, o) => s + Number(o.total), 0);
+  const orders = recentOrders;
 
   const stats = [
-    { label: "Produtos ativos", value: totalProducts ?? 0, icon: Package, color: "bg-blue-50 text-[#2B7DD4]" },
-    { label: "Pedidos totais", value: totalOrders ?? 0, icon: ShoppingBag, color: "bg-purple-50 text-purple-600" },
+    { label: "Produtos ativos", value: Number(totalProducts), icon: Package, color: "bg-blue-50 text-[#2B7DD4]" },
+    { label: "Pedidos totais", value: Number(totalOrders), icon: ShoppingBag, color: "bg-purple-50 text-purple-600" },
     { label: "Receita total", value: `R$ ${revenue.toFixed(2).replace(".", ",")}`, icon: DollarSign, color: "bg-green-50 text-[#1A5C2A]" },
-    { label: "Estoque baixo", value: lowStock ?? 0, icon: TrendingUp, color: "bg-red-50 text-red-600" },
+    { label: "Estoque baixo", value: Number(lowStock), icon: TrendingUp, color: "bg-red-50 text-red-600" },
   ];
 
   return (
@@ -47,7 +44,6 @@ export default async function AdminDashboard() {
         <p className="text-[#718096] text-sm mt-0.5">Visão geral da Farmácia Santa Clara</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-white rounded-2xl border border-[#e2e8f0] p-5 flex items-center gap-4">
@@ -62,7 +58,6 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Pedidos recentes */}
       <div className="bg-white rounded-2xl border border-[#e2e8f0]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#e2e8f0]">
           <h2 className="font-bold text-[#1a202c]">Pedidos recentes</h2>
@@ -86,7 +81,7 @@ export default async function AdminDashboard() {
                   <div className="flex items-center gap-3">
                     <span className={`text-xs font-medium px-2.5 py-1 rounded-lg ${s.color}`}>{s.label}</span>
                     <span className="text-sm font-bold text-[#1A5C2A]">
-                      R$ {order.total.toFixed(2).replace(".", ",")}
+                      R$ {Number(order.total).toFixed(2).replace(".", ",")}
                     </span>
                   </div>
                 </div>

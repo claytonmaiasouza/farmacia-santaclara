@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { Suspense } from "react";
-import { getCategoryBySlug } from "@/lib/queries/categories";
+import { getCategoryBySlug, getCategoryById, getSubcategories } from "@/lib/queries/categories";
 import { getProductsByCategory } from "@/lib/queries/products";
 import ProductCard from "@/components/ui/ProductCard";
 import Filters from "@/components/catalog/Filters";
@@ -35,12 +35,22 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   if (!category) notFound();
 
   const page = Number(pagina ?? 1);
-  const { products, total } = await getProductsByCategory(slug, {
-    page,
-    limit: PER_PAGE,
-    orderBy: ordem ?? "created_at",
-    priceRange: preco,
-  });
+  const parentCategory = category.parent_id
+    ? await getCategoryById(category.parent_id)
+    : null;
+  const grandParentCategory = parentCategory?.parent_id
+    ? await getCategoryById(parentCategory.parent_id)
+    : null;
+
+  const [subcategories, { products, total }] = await Promise.all([
+    getSubcategories(category.id),
+    getProductsByCategory(slug, {
+      page,
+      limit: PER_PAGE,
+      orderBy: ordem ?? "created_at",
+      priceRange: preco,
+    }),
+  ]);
 
   return (
     <div className="pt-6">
@@ -48,6 +58,18 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       <nav className="flex items-center gap-1.5 text-sm text-[#718096] mb-6">
         <Link href="/" className="hover:text-[#2B7DD4] transition-colors">Início</Link>
         <ChevronRight size={14} />
+        {grandParentCategory && (
+          <>
+            <Link href={`/categoria/${grandParentCategory.slug}`} className="hover:text-[#2B7DD4] transition-colors">{grandParentCategory.name}</Link>
+            <ChevronRight size={14} />
+          </>
+        )}
+        {parentCategory && (
+          <>
+            <Link href={`/categoria/${parentCategory.slug}`} className="hover:text-[#2B7DD4] transition-colors">{parentCategory.name}</Link>
+            <ChevronRight size={14} />
+          </>
+        )}
         <span className="text-[#1a202c] font-medium">{category.name}</span>
       </nav>
 
@@ -76,6 +98,26 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           {category.description && (
             <p className="text-[#718096] mt-1">{category.description}</p>
           )}
+        </div>
+      )}
+
+      {/* Subcategorias / Marcas */}
+      {subcategories.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-[#718096] uppercase tracking-wider mb-3">
+            {category.parent_id ? "Marcas" : "Categoria"}
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {subcategories.map((sub) => (
+              <Link
+                key={sub.id}
+                href={`/categoria/${sub.slug}`}
+                className="px-4 py-2 bg-white border border-[#e2e8f0] rounded-xl text-sm font-medium text-[#1a202c] hover:border-[#2B7DD4] hover:text-[#2B7DD4] transition-colors"
+              >
+                {sub.name}
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 
@@ -110,8 +152,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
                 name: product.name,
                 brand: product.brand?.name ?? "",
                 slug: product.slug,
-                price: product.price,
-                originalPrice: product.original_price ?? undefined,
+                price: Number(product.price),
+                originalPrice: product.original_price ? Number(product.original_price) : undefined,
                 image: product.image_url ?? "/images/products/placeholder.svg",
               }}
             />

@@ -55,8 +55,8 @@ async function SearchResults({ query }: { query: string }) {
               name: product.name,
               brand: product.brand?.name ?? "",
               slug: product.slug,
-              price: product.price,
-              originalPrice: product.original_price ?? undefined,
+              price: Number(product.price),
+              originalPrice: product.original_price ? Number(product.original_price) : undefined,
               image: product.image_url ?? "/images/products/placeholder.svg",
             }}
           />

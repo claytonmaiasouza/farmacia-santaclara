@@ -1,46 +1,39 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import sql from "@/lib/db";
 import { User, ShoppingBag, Settings, LogOut } from "lucide-react";
 
 const NAV = [
-  { href: "/conta", label: "Visão geral", icon: User, exact: true },
+  { href: "/conta", label: "Visão geral", icon: User },
   { href: "/conta/pedidos", label: "Meus pedidos", icon: ShoppingBag },
   { href: "/conta/perfil", label: "Meu perfil", icon: Settings },
 ];
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/login");
 
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", user.id)
-    .single();
-
-  const name = (profile as { full_name: string | null } | null)?.full_name ?? user.email ?? "Usuário";
+  const [user] = await sql`SELECT full_name, email FROM users WHERE id = ${session.user.id} LIMIT 1`;
+  const name = user?.full_name ?? session.user.email ?? "Usuário";
+  const email = user?.email ?? session.user.email ?? "";
 
   return (
     <div className="pt-6">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
         <aside className="lg:col-span-1">
           <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5">
-            {/* Avatar */}
             <div className="flex items-center gap-3 mb-5 pb-5 border-b border-[#e2e8f0]">
               <div className="w-12 h-12 rounded-full bg-[#2B7DD4] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                 {name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <p className="font-semibold text-[#1a202c] truncate">{name}</p>
-                <p className="text-xs text-[#718096] truncate">{user.email}</p>
+                <p className="text-xs text-[#718096] truncate">{email}</p>
               </div>
             </div>
 
-            {/* Nav */}
             <nav className="flex flex-col gap-1">
               {NAV.map(({ href, label, icon: Icon }) => (
                 <Link
@@ -66,7 +59,6 @@ export default async function AccountLayout({ children }: { children: React.Reac
           </div>
         </aside>
 
-        {/* Conteúdo */}
         <main className="lg:col-span-3">{children}</main>
       </div>
     </div>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { signIn } from "next-auth/react";
 
 function LoginForm() {
   const router = useRouter();
@@ -23,15 +23,14 @@ function LoginForm() {
     setError("");
     setLoading(true);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
 
-    if (error) {
-      setError(
-        error.message === "Invalid login credentials"
-          ? "E-mail ou senha incorretos."
-          : "Erro ao entrar. Tente novamente."
-      );
+    if (result?.error) {
+      setError("E-mail ou senha incorretos.");
       setLoading(false);
       return;
     }
@@ -43,7 +42,6 @@ function LoginForm() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
           <Link href="/">
             <Image src="/images/logo.png" alt="Farmácia Santa Clara" width={160} height={50} />

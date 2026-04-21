@@ -26,17 +26,18 @@ type CartAction =
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "ADD": {
-      const existing = state.items.find((i) => i.id === action.item.id);
+      const item = { ...action.item, price: Number(action.item.price) };
+      const existing = state.items.find((i) => i.id === item.id);
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.id === action.item.id
-              ? { ...i, quantity: i.quantity + action.item.quantity }
+            i.id === item.id
+              ? { ...i, quantity: i.quantity + item.quantity }
               : i
           ),
         };
       }
-      return { items: [...state.items, action.item] };
+      return { items: [...state.items, item] };
     }
     case "REMOVE":
       return { items: state.items.filter((i) => i.id !== action.id) };
@@ -49,7 +50,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case "CLEAR":
       return { items: [] };
     case "LOAD":
-      return { items: action.items };
+      return { items: action.items.map((i) => ({ ...i, price: Number(i.price) })) };
     default:
       return state;
   }

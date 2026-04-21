@@ -2,15 +2,78 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Phone, MapPin, Menu, X } from "lucide-react";
+import { Search, MapPin, Menu, X } from "lucide-react";
 import CartButton from "@/components/layout/CartButton";
 import UserMenu from "@/components/layout/UserMenu";
 import ExchangeRates from "@/components/layout/ExchangeRates";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+
+interface Suggestion {
+  id: string;
+  name: string;
+  slug: string;
+  image_url: string | null;
+  price: number;
+  brand: string;
+  category: string;
+}
 
 export default function Header() {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (q.length < 2) { setSuggestions([]); setOpen(false); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setSuggestions(data);
+      setOpen(data.length > 0);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(query), 250);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, fetchSuggestions]);
+
+  // Fecha ao clicar fora
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (query.trim()) {
+      setOpen(false);
+      router.push(`/busca?q=${encodeURIComponent(query.trim())}`);
+    }
+  }
+
+  function handleSelect(slug: string) {
+    setOpen(false);
+    setQuery("");
+    router.push(`/produto/${slug}`);
+  }
 
   return (
     <header className="w-full bg-white shadow-sm sticky top-0 z-50">
@@ -18,19 +81,12 @@ export default function Header() {
       <div className="bg-[#1A5C2A] text-white text-sm py-1.5">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-shrink-0">
-            <span className="flex items-center gap-1.5">
-              <Phone size={13} />
-              (11) 9999-9999
-            </span>
             <span className="hidden md:flex items-center gap-1.5">
               <MapPin size={13} />
-              Encontre nossa loja
+              Cidade del Este — Paraguai
             </span>
           </div>
-
-          {/* Câmbio Cambios Chaco */}
           <ExchangeRates />
-
           <div className="flex items-center gap-4 flex-shrink-0">
             <Link href="/conta" className="hover:text-[#6DC040] transition-colors hidden sm:block">
               Minha conta
@@ -44,7 +100,7 @@ export default function Header() {
 
       {/* Header principal */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6">
-        {/* Logo + nome */}
+        {/* Logo */}
         <Link href="/" className="flex-shrink-0 flex flex-col items-center gap-0.5">
           <Image
             src="/images/logo.png"
@@ -61,38 +117,78 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Busca */}
-        <form
-          className="flex-1 flex items-center bg-[#f4f6f8] rounded-xl overflow-hidden border border-[#e2e8f0] focus-within:border-[#2B7DD4] transition-colors"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (searchQuery.trim()) {
-              window.location.href = `/busca?q=${encodeURIComponent(searchQuery)}`;
-            }
-          }}
-        >
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar medicamentos, vitaminas, cosméticos..."
-            className="flex-1 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-[#718096]"
-          />
-          <button
-            type="submit"
-            className="bg-[#2B7DD4] hover:bg-[#1a5fa8] transition-colors px-5 py-3 text-white"
+        {/* Busca com autocomplete */}
+        <div ref={containerRef} className="flex-1 relative">
+          <form
+            className="flex items-center bg-[#f4f6f8] rounded-xl overflow-hidden border border-[#e2e8f0] focus-within:border-[#2B7DD4] transition-colors"
+            onSubmit={handleSubmit}
           >
-            <Search size={18} />
-          </button>
-        </form>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => suggestions.length > 0 && setOpen(true)}
+              placeholder="Buscar medicamentos, vitaminas, cosméticos..."
+              className="flex-1 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-[#718096]"
+              autoComplete="off"
+            />
+            <button
+              type="submit"
+              className="bg-[#2B7DD4] hover:bg-[#1a5fa8] transition-colors px-5 py-3 text-white"
+            >
+              {loading
+                ? <span className="w-[18px] h-[18px] border-2 border-white border-t-transparent rounded-full animate-spin block" />
+                : <Search size={18} />
+              }
+            </button>
+          </form>
+
+          {/* Dropdown de sugestões */}
+          {open && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e2e8f0] rounded-2xl shadow-xl z-50 overflow-hidden">
+              {suggestions.map((s) => (
+                <button
+                  key={s.id}
+                  onMouseDown={() => handleSelect(s.slug)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#f4f6f8] transition-colors text-left border-b border-[#f4f6f8] last:border-0"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[#f4f6f8] flex-shrink-0 overflow-hidden">
+                    {s.image_url ? (
+                      <Image
+                        src={s.image_url}
+                        alt={s.name}
+                        width={40}
+                        height={40}
+                        className="object-contain w-full h-full p-0.5"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#e2e8f0]" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#1a202c] truncate">{s.name}</p>
+                    <p className="text-xs text-[#718096] truncate">{s.brand || s.category}</p>
+                  </div>
+                  <span className="text-sm font-bold text-[#1A5C2A] flex-shrink-0">
+                    R$ {s.price.toFixed(2).replace(".", ",")}
+                  </span>
+                </button>
+              ))}
+              <button
+                onMouseDown={handleSubmit as unknown as React.MouseEventHandler}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm text-[#2B7DD4] font-medium hover:bg-blue-50 transition-colors"
+              >
+                <Search size={14} />
+                Ver todos os resultados para "{query}"
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Ações */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <UserMenu />
-
           <CartButton />
-
-          {/* Menu mobile */}
           <button
             className="lg:hidden p-2 text-[#718096]"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -116,8 +212,6 @@ export default function Header() {
                 </Link>
               </li>
             ))}
-
-            {/* Destaque: Promoções */}
             <li className="ml-auto">
               <Link
                 href="/promocoes"
@@ -130,7 +224,7 @@ export default function Header() {
         </div>
       </nav>
 
-      {/* Menu mobile aberto */}
+      {/* Menu mobile */}
       {menuOpen && (
         <div className="lg:hidden border-t border-[#e2e8f0] bg-white">
           {navItems.map((item) => (
@@ -150,9 +244,9 @@ export default function Header() {
 }
 
 const navItems = [
-  { label: "Peptídeos",             href: "/categoria/peptideos" },
-  { label: "Hormônios",             href: "/categoria/hormonios" },
-  { label: "Vitaminas",             href: "/categoria/vitaminas" },
-  { label: "Suplementos",           href: "/categoria/suplementos" },
-  { label: "Insumos Hospitalares",  href: "/categoria/insumos-hospitalares" },
+  { label: "Peptídeos",            href: "/categoria/peptideos" },
+  { label: "Hormônios",            href: "/categoria/hormonios" },
+  { label: "Vitaminas",            href: "/categoria/vitaminas" },
+  { label: "Suplementos",          href: "/categoria/suplementos" },
+  { label: "Insumos Hospitalares", href: "/categoria/insumos-hospitalares" },
 ];

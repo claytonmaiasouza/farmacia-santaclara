@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import sql from "@/lib/db";
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import type { Order, OrderItem } from "@/types/database";
@@ -19,18 +21,22 @@ interface OrderWithItems extends Order {
 }
 
 export default async function OrdersPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/login");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase as any)
-    .from("orders")
-    .select("*, order_items(*)")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false }) as { data: OrderWithItems[] | null };
-
-  const orders = data ?? [];
+  const orders = await sql<OrderWithItems[]>`
+    SELECT
+      o.*,
+      COALESCE(
+        json_agg(oi.* ORDER BY oi.id) FILTER (WHERE oi.id IS NOT NULL),
+        '[]'
+      ) AS order_items
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id = o.id
+    WHERE o.user_id = ${session.user.id}
+    GROUP BY o.id
+    ORDER BY o.created_at DESC
+  `;
 
   return (
     <div className="flex flex-col gap-4">
@@ -49,7 +55,6 @@ export default async function OrdersPage() {
           const status = STATUS_LABEL[order.status] ?? STATUS_LABEL.pending;
           return (
             <div key={order.id} className="bg-white rounded-2xl border border-[#e2e8f0] p-5">
-              {/* Cabeçalho do pedido */}
               <div className="flex flex-wrap items-start justify-between gap-3 mb-4 pb-4 border-b border-[#e2e8f0]">
                 <div>
                   <p className="text-sm font-bold text-[#1a202c]">
@@ -66,7 +71,6 @@ export default async function OrdersPage() {
                 </span>
               </div>
 
-              {/* Itens */}
               <div className="flex flex-col gap-2 mb-4">
                 {order.order_items.map((item) => (
                   <div key={item.id} className="flex justify-between items-center text-sm">
@@ -75,22 +79,21 @@ export default async function OrdersPage() {
                       <span className="text-[#718096] ml-1">x{item.quantity}</span>
                     </span>
                     <span className="font-medium text-[#1a202c]">
-                      R$ {item.total_price.toFixed(2).replace(".", ",")}
+                      R$ {Number(item.total_price).toFixed(2).replace(".", ",")}
                     </span>
                   </div>
                 ))}
               </div>
 
-              {/* Total */}
               <div className="flex justify-between items-center pt-3 border-t border-[#e2e8f0]">
                 <div className="text-xs text-[#718096]">
                   Frete:{" "}
-                  <span className={order.shipping === 0 ? "text-[#6DC040] font-medium" : ""}>
-                    {order.shipping === 0 ? "Grátis" : `R$ ${order.shipping.toFixed(2).replace(".", ",")}`}
+                  <span className={Number(order.shipping) === 0 ? "text-[#6DC040] font-medium" : ""}>
+                    {Number(order.shipping) === 0 ? "Grátis" : `R$ ${Number(order.shipping).toFixed(2).replace(".", ",")}`}
                   </span>
                 </div>
                 <div className="text-base font-bold text-[#1A5C2A]">
-                  Total: R$ {order.total.toFixed(2).replace(".", ",")}
+                  Total: R$ {Number(order.total).toFixed(2).replace(".", ",")}
                 </div>
               </div>
             </div>

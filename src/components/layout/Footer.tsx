@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, Mail, MapPin, Instagram, Facebook } from "lucide-react";
+import { Phone, MapPin, Instagram, Facebook } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -14,7 +14,7 @@ export default function Footer() {
               alt="Farmácia Santa Clara"
               width={160}
               height={50}
-              className="brightness-0 invert opacity-90"
+              className="opacity-90"
             />
             <p className="text-sm text-gray-400 leading-relaxed">
               Cuidando da sua saúde com qualidade e confiança há anos. Produtos
@@ -40,17 +40,16 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Coluna 2 — Links */}
+          {/* Coluna 2 — Categorias */}
           <div>
             <h3 className="text-white font-semibold mb-4">Categorias</h3>
             <ul className="space-y-2 text-sm">
               {[
-                { label: "Medicamentos", href: "/categoria/medicamentos" },
-                { label: "Vitaminas e Suplementos", href: "/categoria/vitaminas" },
-                { label: "Dermocosméticos", href: "/categoria/dermocosmeticos" },
-                { label: "Higiene Pessoal", href: "/categoria/higiene" },
-                { label: "Bebê e Criança", href: "/categoria/bebe" },
-                { label: "Perfumaria", href: "/categoria/perfumaria" },
+                { label: "Peptídeos", href: "/categoria/peptideos" },
+                { label: "Hormônios", href: "/categoria/hormonios" },
+                { label: "Vitaminas", href: "/categoria/vitaminas" },
+                { label: "Suplementos", href: "/categoria/suplementos" },
+                { label: "Insumos Hospitalares", href: "/categoria/insumos-hospitalares" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link
@@ -94,19 +93,11 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin size={16} className="text-[#6DC040] mt-0.5 flex-shrink-0" />
-                <span>Rua Exemplo, 123 — Bairro<br />Cidade - Estado, CEP 00000-000</span>
+                <span>Rua Cidade Leste<br />Cidade del Este — Alto Paraná<br />Paraguai</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone size={16} className="text-[#6DC040] flex-shrink-0" />
-                <a href="tel:+5511999999999" className="hover:text-[#6DC040] transition-colors">
-                  (11) 9999-9999
-                </a>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <Mail size={16} className="text-[#6DC040] flex-shrink-0" />
-                <a href="mailto:contato@farmaciasantaclara.com.br" className="hover:text-[#6DC040] transition-colors text-xs">
-                  contato@farmaciasantaclara.com.br
-                </a>
+                <span>A definir</span>
               </li>
             </ul>
 

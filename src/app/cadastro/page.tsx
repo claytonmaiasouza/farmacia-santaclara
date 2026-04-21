@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, Mail, Lock, User } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,26 +32,17 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    const supabase = createClient();
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-      },
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
     });
 
-    if (error) {
-      if (error.message.includes("already registered") || error.message.includes("already been registered")) {
-        setError("Este e-mail já está cadastrado.");
-      } else if (error.message.includes("Password should be")) {
-        setError("A senha deve ter pelo menos 6 caracteres.");
-      } else if (error.message.includes("Unable to validate email")) {
-        setError("E-mail inválido. Verifique e tente novamente.");
-      } else {
-        setError(`Erro: ${error.message}`);
-      }
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error ?? "Erro ao criar conta. Tente novamente.");
       setLoading(false);
       return;
     }
@@ -67,9 +57,7 @@ export default function RegisterPage() {
         <div className="text-center max-w-sm px-4">
           <div className="text-5xl mb-4">✅</div>
           <h2 className="text-xl font-bold text-[#1a202c]">Conta criada com sucesso!</h2>
-          <p className="text-[#718096] mt-2 text-sm">
-            Verifique seu e-mail para confirmar o cadastro, depois faça login.
-          </p>
+          <p className="text-[#718096] mt-2 text-sm">Faça login para continuar.</p>
           <p className="text-[#718096] mt-1 text-xs">Redirecionando para o login...</p>
         </div>
       </div>

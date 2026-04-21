@@ -28,8 +28,10 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) notFound();
 
-  const discount = product.original_price
-    ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
+  const price = Number(product.price);
+  const originalPrice = product.original_price ? Number(product.original_price) : null;
+  const discount = originalPrice
+    ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : null;
 
   // Produtos relacionados
@@ -103,10 +105,10 @@ export default async function ProductPage({ params }: Props) {
 
           {/* Preço */}
           <div>
-            {product.original_price && (
+            {originalPrice && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-[#718096] line-through">
-                  R$ {product.original_price.toFixed(2).replace(".", ",")}
+                  R$ {originalPrice.toFixed(2).replace(".", ",")}
                 </span>
                 <span className="bg-[#e53e3e] text-white text-xs font-bold px-2 py-0.5 rounded-lg">
                   -{discount}%
@@ -114,13 +116,13 @@ export default async function ProductPage({ params }: Props) {
               </div>
             )}
             <div className="text-3xl font-bold text-[#1A5C2A] mt-0.5">
-              R$ {product.price.toFixed(2).replace(".", ",")}
+              R$ {price.toFixed(2).replace(".", ",")}
             </div>
             <div className="text-sm text-[#718096] mt-1">
-              ou 3x de R$ {(product.price / 3).toFixed(2).replace(".", ",")} sem juros
+              ou 3x de R$ {(price / 3).toFixed(2).replace(".", ",")} sem juros
             </div>
             <div className="text-sm text-[#6DC040] font-medium mt-1">
-              ou R$ {(product.price * 0.95).toFixed(2).replace(".", ",")} no Pix (5% off)
+              ou R$ {(price * 0.95).toFixed(2).replace(".", ",")} no Pix (5% off)
             </div>
           </div>
 
@@ -133,7 +135,7 @@ export default async function ProductPage({ params }: Props) {
               name: product.name,
               brand: product.brand?.name ?? "",
               slug: product.slug,
-              price: product.price,
+              price: price,
               image: product.image_url ?? "/images/products/placeholder.svg",
               stock: product.stock,
             }}
@@ -184,8 +186,8 @@ function toProductCard(p: Awaited<ReturnType<typeof getProductBySlug>>): Product
     name: p!.name,
     brand: p!.brand?.name ?? "",
     slug: p!.slug,
-    price: p!.price,
-    originalPrice: p!.original_price ?? undefined,
+    price: Number(p!.price),
+    originalPrice: p!.original_price ? Number(p!.original_price) : undefined,
     image: p!.image_url ?? "/images/products/placeholder.svg",
   };
 }

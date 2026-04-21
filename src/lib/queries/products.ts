@@ -1,51 +1,77 @@
-import { createClient } from "@/lib/supabase/server";
+import sql from "@/lib/db";
 import type { ProductWithRelations } from "@/types/database";
 
-export async function getFeaturedProducts(limit = 10): Promise<ProductWithRelations[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(`*, category:categories(*), brand:brands(*), images:product_images(*)`)
-    .eq("featured", true)
-    .eq("active", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+const PRODUCT_SELECT = sql`
+  p.*,
+  row_to_json(c.*) AS category,
+  row_to_json(b.*) AS brand,
+  COALESCE(
+    json_agg(pi.* ORDER BY pi.sort_order) FILTER (WHERE pi.id IS NOT NULL),
+    '[]'
+  ) AS images
+`;
 
-  if (error) throw error;
-  return data as ProductWithRelations[];
+const BASE_FROM = sql`
+  FROM products p
+  LEFT JOIN categories c  ON c.id  = p.category_id
+  LEFT JOIN brands b      ON b.id  = p.brand_id
+  LEFT JOIN product_images pi ON pi.product_id = p.id
+`;
+
+function buildPriceFilter(priceRange?: string) {
+  if (!priceRange) return sql``;
+  if (priceRange === "200+") return sql`AND p.price >= 200`;
+  const [min, max] = priceRange.split("-").map(Number);
+  return sql`AND p.price >= ${min} AND p.price <= ${max}`;
+}
+
+function buildOrderBy(orderBy: string) {
+  if (orderBy === "price_asc")  return sql`ORDER BY p.price ASC`;
+  if (orderBy === "price_desc") return sql`ORDER BY p.price DESC`;
+  if (orderBy === "name")       return sql`ORDER BY p.name ASC`;
+  return sql`ORDER BY p.created_at DESC`;
+}
+
+export async function getFeaturedProducts(limit = 10): Promise<ProductWithRelations[]> {
+  const rows = await sql`
+    SELECT ${PRODUCT_SELECT}
+    ${BASE_FROM}
+    WHERE p.featured = true AND p.active = true
+    GROUP BY p.id, c.id, b.id
+    ORDER BY p.created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows as unknown as ProductWithRelations[];
 }
 
 export async function getNewProducts(limit = 10): Promise<ProductWithRelations[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(`*, category:categories(*), brand:brands(*), images:product_images(*)`)
-    .eq("active", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error) throw error;
-  return data as ProductWithRelations[];
+  const rows = await sql`
+    SELECT ${PRODUCT_SELECT}
+    ${BASE_FROM}
+    WHERE p.active = true
+    GROUP BY p.id, c.id, b.id
+    ORDER BY p.created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows as unknown as ProductWithRelations[];
 }
 
 export async function getProductBySlug(slug: string): Promise<ProductWithRelations | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(`*, category:categories(*), brand:brands(*), images:product_images(*)`)
-    .eq("slug", slug)
-    .eq("active", true)
-    .single();
-
-  if (error) return null;
-  return data as ProductWithRelations;
+  const rows = await sql`
+    SELECT ${PRODUCT_SELECT}
+    ${BASE_FROM}
+    WHERE p.slug = ${slug} AND p.active = true
+    GROUP BY p.id, c.id, b.id
+    LIMIT 1
+  `;
+  return (rows[0] as unknown as ProductWithRelations) ?? null;
 }
 
 export interface CategoryFilters {
   page?: number;
   limit?: number;
   orderBy?: string;
-  priceRange?: string; // "0-30" | "30-80" | "80-200" | "200+"
+  priceRange?: string;
 }
 
 export async function getProductsByCategory(
@@ -53,55 +79,101 @@ export async function getProductsByCategory(
   options: CategoryFilters = {}
 ): Promise<{ products: ProductWithRelations[]; total: number }> {
   const { page = 1, limit = 20, orderBy = "created_at", priceRange } = options;
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
+  const offset = (page - 1) * limit;
+  const priceFilter = buildPriceFilter(priceRange);
+  const order = buildOrderBy(orderBy);
 
-  const supabase = await createClient();
+  const catRows = await sql`SELECT id FROM categories WHERE slug = ${categorySlug} LIMIT 1`;
+  if (!catRows[0]) return { products: [], total: 0 };
+  const categoryId = catRows[0].id;
 
-  const { data: category } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("slug", categorySlug)
-    .single();
+  // Include products from child categories (one level deep)
+  const [countRow] = await sql`
+    SELECT COUNT(*) AS total
+    FROM products p
+    WHERE p.active = true
+      AND (
+        p.category_id = ${categoryId}
+        OR p.category_id IN (SELECT id FROM categories WHERE parent_id = ${categoryId})
+      )
+    ${priceFilter}
+  `;
 
-  if (!category) return { products: [], total: 0 };
-  const categoryId = (category as { id: string }).id;
+  const rows = await sql`
+    SELECT ${PRODUCT_SELECT}
+    ${BASE_FROM}
+    WHERE p.active = true
+      AND (
+        p.category_id = ${categoryId}
+        OR p.category_id IN (SELECT id FROM categories WHERE parent_id = ${categoryId})
+      )
+    ${priceFilter}
+    GROUP BY p.id, c.id, b.id
+    ${order}
+    LIMIT ${limit} OFFSET ${offset}
+  `;
 
-  let query = supabase
-    .from("products")
-    .select(`*, category:categories(*), brand:brands(*), images:product_images(*)`, { count: "exact" })
-    .eq("category_id", categoryId)
-    .eq("active", true);
+  return {
+    products: rows as unknown as ProductWithRelations[],
+    total: Number(countRow.total),
+  };
+}
 
-  // Filtro de preço
-  if (priceRange) {
-    if (priceRange === "200+") {
-      query = query.gte("price", 200);
-    } else {
-      const [min, max] = priceRange.split("-").map(Number);
-      query = query.gte("price", min).lte("price", max);
-    }
-  }
+export async function getProductsByBrand(
+  brandSlug: string,
+  options: CategoryFilters = {}
+): Promise<{ products: ProductWithRelations[]; total: number }> {
+  const { page = 1, limit = 20, orderBy = "created_at", priceRange } = options;
+  const offset = (page - 1) * limit;
+  const priceFilter = buildPriceFilter(priceRange);
+  const order = buildOrderBy(orderBy);
 
-  // Ordenação
-  const ascending = orderBy === "price_asc" || orderBy === "name";
-  const column = orderBy === "price_asc" || orderBy === "price_desc" ? "price" : orderBy;
-  query = query.order(column, { ascending }).range(from, to);
+  const brandRows = await sql`SELECT id FROM brands WHERE slug = ${brandSlug} LIMIT 1`;
+  if (!brandRows[0]) return { products: [], total: 0 };
+  const brandId = brandRows[0].id;
 
-  const { data, error, count } = await query;
-  if (error) throw error;
-  return { products: data as ProductWithRelations[], total: count ?? 0 };
+  const [countRow] = await sql`
+    SELECT COUNT(*) AS total
+    FROM products p
+    WHERE p.brand_id = ${brandId} AND p.active = true
+    ${priceFilter}
+  `;
+
+  const rows = await sql`
+    SELECT ${PRODUCT_SELECT}
+    ${BASE_FROM}
+    WHERE p.brand_id = ${brandId} AND p.active = true
+    ${priceFilter}
+    GROUP BY p.id, c.id, b.id
+    ${order}
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+
+  return {
+    products: rows as unknown as ProductWithRelations[],
+    total: Number(countRow.total),
+  };
 }
 
 export async function searchProducts(query: string, limit = 20): Promise<ProductWithRelations[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(`*, category:categories(*), brand:brands(*), images:product_images(*)`)
-    .eq("active", true)
-    .textSearch("name", query, { type: "websearch", config: "portuguese" })
-    .limit(limit);
-
-  if (error) throw error;
-  return data as ProductWithRelations[];
+  const pattern = `%${query}%`;
+  const rows = await sql`
+    SELECT ${PRODUCT_SELECT}
+    ${BASE_FROM}
+    LEFT JOIN brands bsearch ON bsearch.id = p.brand_id
+    WHERE p.active = true
+      AND (
+        p.name        ILIKE ${pattern}
+        OR bsearch.name ILIKE ${pattern}
+        OR p.slug     ILIKE ${pattern}
+        OR p.short_description ILIKE ${pattern}
+        OR EXISTS (SELECT 1 FROM unnest(p.tags) t WHERE t ILIKE ${pattern})
+      )
+    GROUP BY p.id, c.id, b.id
+    ORDER BY
+      CASE WHEN p.name ILIKE ${`${query}%`} THEN 0 ELSE 1 END,
+      p.created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows as unknown as ProductWithRelations[];
 }

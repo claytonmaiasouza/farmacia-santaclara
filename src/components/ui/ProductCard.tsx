@@ -20,8 +20,10 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const discount = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const price = Number(product.price);
+  const originalPrice = product.originalPrice ? Number(product.originalPrice) : null;
+  const discount = originalPrice
+    ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : null;
 
   return (
@@ -61,22 +63,22 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="flex items-center gap-1 mt-0.5">
             <Star size={12} fill="#f6c000" stroke="none" />
             <span className="text-xs text-[#718096]">
-              {product.rating.toFixed(1)} ({product.reviewCount})
+              {Number(product.rating).toFixed(1)} ({product.reviewCount})
             </span>
           </div>
         )}
 
         <div className="mt-auto pt-2">
-          {product.originalPrice && (
+          {originalPrice && (
             <span className="text-xs text-[#718096] line-through">
-              R$ {product.originalPrice.toFixed(2).replace(".", ",")}
+              R$ {originalPrice.toFixed(2).replace(".", ",")}
             </span>
           )}
           <div className="text-lg font-bold text-[#1A5C2A]">
-            R$ {product.price.toFixed(2).replace(".", ",")}
+            R$ {price.toFixed(2).replace(".", ",")}
           </div>
           <div className="text-xs text-[#718096]">
-            ou 3x de R$ {(product.price / 3).toFixed(2).replace(".", ",")} sem juros
+            ou 3x de R$ {(price / 3).toFixed(2).replace(".", ",")} sem juros
           </div>
         </div>
       </div>

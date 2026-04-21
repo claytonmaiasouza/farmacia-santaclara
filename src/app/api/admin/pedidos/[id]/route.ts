@@ -1,31 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth-helpers";
+import sql from "@/lib/db";
 
-async function isAdmin() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = (await createClient()) as any;
-  const { data: { user } } = await db.auth.getUser();
-  if (!user) return false;
-  const { data } = await db.from("profiles").select("is_admin").eq("id", user.id).single();
-  return data?.is_admin === true;
-}
+const VALID_STATUS = ["pending","paid","processing","shipped","delivered","cancelled","refunded"];
 
-interface Props {
-  params: Promise<{ id: string }>;
-}
-
-export async function PATCH(req: NextRequest, { params }: Props) {
-  if (!await isAdmin()) return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
 
   const { id } = await params;
   const { status } = await req.json();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = (await createClient()) as any;
 
-  const VALID = ["pending","paid","processing","shipped","delivered","cancelled","refunded"];
-  if (!VALID.includes(status)) return NextResponse.json({ error: "Status inválido" }, { status: 400 });
+  if (!VALID_STATUS.includes(status)) {
+    return NextResponse.json({ error: "Status inválido" }, { status: 400 });
+  }
 
-  const { error } = await db.from("orders").update({ status }).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
   return NextResponse.json({ success: true });
 }

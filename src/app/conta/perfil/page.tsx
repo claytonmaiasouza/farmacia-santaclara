@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { useSession } from "next-auth/react";
 
 interface ProfileForm {
   full_name: string;
@@ -12,6 +12,7 @@ interface ProfileForm {
 }
 
 export default function ProfilePage() {
+  const { data: session } = useSession();
   const [form, setForm] = useState<ProfileForm>({ full_name: "", phone: "", cpf: "", birth_date: "" });
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
@@ -21,30 +22,20 @@ export default function ProfilePage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      setEmail(user.email ?? "");
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (data) {
-        const p = data as ProfileForm & { birth_date: string | null };
-        setForm({
-          full_name: p.full_name ?? "",
-          phone: p.phone ?? "",
-          cpf: p.cpf ?? "",
-          birth_date: p.birth_date ?? "",
-        });
-      }
+      const res = await fetch("/api/conta/perfil");
+      if (!res.ok) return;
+      const data = await res.json();
+      setEmail(data.email ?? "");
+      setForm({
+        full_name: data.full_name ?? "",
+        phone: data.phone ?? "",
+        cpf: data.cpf ?? "",
+        birth_date: data.birth_date ?? "",
+      });
       setLoading(false);
     }
-    load();
-  }, []);
+    if (session) load();
+  }, [session]);
 
   function set(field: keyof ProfileForm, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -56,22 +47,13 @@ export default function ProfilePage() {
     setError("");
     setSuccess(false);
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const res = await fetch("/api/conta/perfil", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
-      .from("profiles")
-      .update({
-        full_name: form.full_name,
-        phone: form.phone,
-        cpf: form.cpf,
-        birth_date: form.birth_date || null,
-      })
-      .eq("id", user.id);
-
-    if (error) {
+    if (!res.ok) {
       setError("Erro ao salvar. Tente novamente.");
     } else {
       setSuccess(true);
