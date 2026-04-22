@@ -2,13 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { LayoutDashboard, Package, ShoppingBag, Tag, LogOut, Store } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Tag, LogOut, Store, MessageSquare } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/produtos", label: "Produtos", icon: Package },
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { href: "/admin/categorias", label: "Categorias", icon: Tag },
+  { href: "/admin/conversas", label: "Conversas", icon: MessageSquare },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
