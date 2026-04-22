@@ -121,14 +121,19 @@ async function saveConversationOrder(phone: string, order: OrderData) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (body.event !== "messages.upsert") return NextResponse.json({ ok: true });
+    const eventName: string = (body.event ?? "").toLowerCase().replace(/_/g, ".");
+    if (eventName !== "messages.upsert") return NextResponse.json({ ok: true });
 
-    const msg = body.data;
+    // Evolution v2 pode enviar data como array ou objeto
+    const rawData = body.data;
+    const msg = Array.isArray(rawData) ? rawData[0] : rawData;
     if (!msg || msg.key?.fromMe) return NextResponse.json({ ok: true });
 
-    const phone: string = msg.key?.remoteJid?.replace("@s.whatsapp.net", "") ?? "";
+    const phone: string = msg.key?.remoteJid?.replace("@s.whatsapp.net", "").replace("@g.us", "") ?? "";
     const text: string = msg.message?.conversation ?? msg.message?.extendedTextMessage?.text ?? "";
-    if (!phone || !text) return NextResponse.json({ ok: true });
+    if (!phone || !text || msg.key?.remoteJid?.endsWith("@g.us")) return NextResponse.json({ ok: true });
+
+    console.log(`[Webhook] Mensagem de ${phone}: ${text.slice(0, 50)}`);
 
     const lower = text.toLowerCase().trim();
 
@@ -147,7 +152,7 @@ export async function POST(req: NextRequest) {
     if (isCheckoutOrder) return NextResponse.json({ ok: true });
 
     const rawHistory = await getSession(phone);
-    const history = rawHistory.filter((m) => !m.content.includes("Novo Pedido — Farmácia Santa Clara"));
+    const history = rawHistory.filter((m) => !m.content?.includes("Novo Pedido — Farmácia Santa Clara"));
     const { reply, order } = await generateReply(history, text);
 
     if (order) {
