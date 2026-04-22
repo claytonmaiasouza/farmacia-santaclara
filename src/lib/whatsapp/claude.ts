@@ -85,7 +85,7 @@ PRODUTOS DISPONÍVEIS:
 ${productsContext}
 
 COMO ATENDER:
-- Cumprimente com entusiasmo na primeira mensagem
+- Cumprimente de forma curta e cordial na primeira mensagem (ex: "Olá! Tudo bem? 😊 Como posso ajudar?")
 - Use emojis com moderação para dar vida às respostas 😊💊
 - Quando o cliente perguntar sobre um produto, destaque os benefícios E informe o preço logo
 - Se o cliente hesitar, ofereça alternativas ou reforce o valor do produto
