@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { getSession, addMessage, clearSession } from "@/lib/whatsapp/session";
 import { generateReply, OrderData } from "@/lib/whatsapp/claude";
-import { sendMessage } from "@/lib/whatsapp/evolution";
+import { sendMessage, sendCatalog } from "@/lib/whatsapp/evolution";
 
 const HUMAN_KEYWORDS = ["humano", "atendente", "falar com pessoa", "quero falar com alguém"];
 const CLEAR_KEYWORDS = ["reiniciar", "recomeçar", "nova conversa"];
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 
     const rawHistory = await getSession(phone);
     const history = rawHistory.filter((m) => !m.content?.includes("Novo Pedido — Farmácia Santa Clara"));
-    const { reply, order } = await generateReply(history, text);
+    const { reply, order, sendCatalog: shouldSendCatalog } = await generateReply(history, text);
 
     if (order) {
       await saveConversationOrder(phone, order);
@@ -163,6 +163,7 @@ export async function POST(req: NextRequest) {
     await addMessage(phone, { role: "user", content: text }, "whatsapp");
     await addMessage(phone, { role: "assistant", content: reply }, "whatsapp");
     await sendMessage(phone, reply);
+    if (shouldSendCatalog) await sendCatalog(phone);
 
     return NextResponse.json({ ok: true });
   } catch (err) {
