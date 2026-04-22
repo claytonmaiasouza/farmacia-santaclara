@@ -151,6 +151,16 @@ export async function POST(req: NextRequest) {
     const isCheckoutOrder = await tryParseAndSaveOrder(phone, text);
     if (isCheckoutOrder) return NextResponse.json({ ok: true });
 
+    const sessionRows = await sql`
+      SELECT COALESCE(bot_pausado, FALSE) AS bot_pausado
+      FROM chat_sessions WHERE session_id = ${phone} AND channel = 'whatsapp' LIMIT 1
+    `;
+    if (sessionRows[0]?.bot_pausado) {
+      await addMessage(phone, { role: "user", content: text }, "whatsapp");
+      console.log(`[Webhook] Bot pausado para ${phone} — mensagem salva sem resposta`);
+      return NextResponse.json({ ok: true });
+    }
+
     const rawHistory = await getSession(phone);
     const history = rawHistory.filter((m) => !m.content?.includes("Novo Pedido — Farmácia Santa Clara"));
     const { reply, order, sendCatalog: shouldSendCatalog } = await generateReply(history, text);

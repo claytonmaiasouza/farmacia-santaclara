@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const rows = await sql`
-    SELECT session_id, messages, updated_at
+    SELECT session_id, messages, updated_at, COALESCE(bot_pausado, FALSE) AS bot_pausado
     FROM chat_sessions
     WHERE session_id = ${id} AND channel = 'whatsapp'
     LIMIT 1
@@ -16,6 +16,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     phone: rows[0].session_id,
     messages: rows[0].messages,
     updated_at: rows[0].updated_at,
+    bot_pausado: rows[0].bot_pausado,
   });
 }
 

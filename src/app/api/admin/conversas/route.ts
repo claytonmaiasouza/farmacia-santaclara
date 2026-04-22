@@ -4,8 +4,10 @@ import sql from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  await sql`ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS bot_pausado BOOLEAN DEFAULT FALSE`;
+
   const rows = await sql`
-    SELECT session_id, channel, messages, updated_at
+    SELECT session_id, channel, messages, updated_at, bot_pausado
     FROM chat_sessions
     WHERE channel = 'whatsapp'
     ORDER BY updated_at DESC
@@ -21,6 +23,7 @@ export async function GET() {
       updated_at: r.updated_at,
       total_messages: msgs.length,
       last_message: last ? { role: last.role, content: last.content } : null,
+      bot_pausado: r.bot_pausado as boolean,
     };
   });
 
