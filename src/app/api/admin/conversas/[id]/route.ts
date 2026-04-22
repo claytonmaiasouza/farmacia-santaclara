@@ -12,9 +12,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     LIMIT 1
   `;
   if (!rows[0]) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+  const rawMessages = rows[0].messages as unknown[];
+  const messages = rawMessages.flatMap((m) => {
+    if (typeof m === "string") {
+      try { return JSON.parse(m) as { role: string; content: string }[]; } catch { return []; }
+    }
+    return m as { role: string; content: string };
+  });
+
   return NextResponse.json({
     phone: rows[0].session_id,
-    messages: rows[0].messages,
+    messages,
     updated_at: rows[0].updated_at,
     bot_pausado: rows[0].bot_pausado,
   });

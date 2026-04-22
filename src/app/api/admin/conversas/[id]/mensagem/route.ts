@@ -16,10 +16,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   await sendMessage(id, texto.trim());
 
-  const newMsg = JSON.stringify([{ role: "assistant", content: `[admin] ${texto.trim()}` }]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const newMsg = sql.json([{ role: "assistant", content: `[admin] ${texto.trim()}` }] as any);
   await sql`
     UPDATE chat_sessions
-    SET messages = messages || ${newMsg}::jsonb, updated_at = now()
+    SET messages = messages || ${newMsg}, updated_at = now()
     WHERE session_id = ${id} AND channel = 'whatsapp'
   `;
 
