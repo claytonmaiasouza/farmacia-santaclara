@@ -1,219 +1,126 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { MessageSquare, Trash2, Send, RefreshCw, Phone } from "lucide-react";
-
-interface Conversa {
-  id: string;
-  phone: string;
-  updated_at: string;
-  total_messages: number;
-  last_message: { role: string; content: string } | null;
-}
-
-interface Mensagem {
-  role: "user" | "assistant";
-  content: string;
-}
-
-function formatPhone(phone: string) {
-  return `+${phone}`;
-}
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "agora";
-  if (mins < 60) return `${mins}min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
-}
+import { useEffect, useState } from "react";
 
 export default function ConversasPage() {
-  const [conversas, setConversas] = useState<Conversa[]>([]);
+  const [conversas, setConversas] = useState<{ id: string; phone: string; updated_at: string; total_messages: number; last_message: { role: string; content: string } | null }[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
+  const [mensagens, setMensagens] = useState<{ role: string; content: string }[]>([]);
   const [texto, setTexto] = useState("");
-  const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const loadConversas = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/conversas");
-      if (res.ok) setConversas(await res.json());
-    } catch {
-      // silently ignore network errors
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => {
+    fetch("/api/admin/conversas")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => { setConversas(data); setLoading(false); })
+      .catch(() => setLoading(false));
 
-  const loadMensagens = useCallback(async (id: string) => {
-    try {
-      const res = await fetch(`/api/admin/conversas/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMensagens(data.messages ?? []);
-      }
-    } catch {
-      // silently ignore
-    }
+    const t = setInterval(() => {
+      fetch("/api/admin/conversas")
+        .then((r) => r.ok ? r.json() : [])
+        .then(setConversas)
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
-    loadConversas();
-    const interval = setInterval(loadConversas, 5000);
-    return () => clearInterval(interval);
-  }, [loadConversas]);
-
-  useEffect(() => {
-    if (!selected) return;
-    loadMensagens(selected);
-    const interval = setInterval(() => loadMensagens(selected), 3000);
-    return () => clearInterval(interval);
-  }, [selected, loadMensagens]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensagens]);
+    if (!selected) { setMensagens([]); return; }
+    const load = () => fetch(`/api/admin/conversas/${selected}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => d && setMensagens(d.messages ?? []))
+      .catch(() => {});
+    load();
+    const t = setInterval(load, 3000);
+    return () => clearInterval(t);
+  }, [selected]);
 
   async function enviar() {
-    if (!texto.trim() || !selected || sending) return;
-    setSending(true);
-    try {
-      await fetch(`/api/admin/conversas/${selected}/mensagem`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texto }),
-      });
-      setTexto("");
-      await loadMensagens(selected);
-    } finally {
-      setSending(false);
-    }
+    if (!texto.trim() || !selected) return;
+    await fetch(`/api/admin/conversas/${selected}/mensagem`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texto }),
+    }).catch(() => {});
+    setTexto("");
   }
 
   async function encerrar(id: string) {
-    if (!window.confirm("Encerrar e apagar esta conversa?")) return;
-    await fetch(`/api/admin/conversas/${id}`, { method: "DELETE" });
-    if (selected === id) { setSelected(null); setMensagens([]); }
-    await loadConversas();
+    if (!window.confirm("Encerrar esta conversa?")) return;
+    await fetch(`/api/admin/conversas/${id}`, { method: "DELETE" }).catch(() => {});
+    if (selected === id) setSelected(null);
+    setConversas((prev) => prev.filter((c) => c.id !== id));
   }
 
-  const selectedConversa = conversas.find((c) => c.id === selected);
-
   return (
-    <div className="h-[calc(100vh-3rem)] flex gap-4">
+    <div style={{ display: "flex", gap: 16, height: "calc(100vh - 96px)" }}>
       {/* Lista */}
-      <div className="w-72 shrink-0 bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageSquare size={16} className="text-green-600" />
-            <span className="font-semibold text-sm text-gray-700">Conversas WhatsApp</span>
-          </div>
-          <button onClick={loadConversas} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <RefreshCw size={14} />
-          </button>
+      <div style={{ width: 280, background: "#fff", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid #f0f0f0", fontWeight: 600, fontSize: 14 }}>
+          Conversas WhatsApp
         </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {loading && <p className="text-center text-xs text-gray-400 py-8">Carregando...</p>}
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {loading && <p style={{ textAlign: "center", color: "#aaa", fontSize: 13, padding: 24 }}>Carregando...</p>}
           {!loading && conversas.length === 0 && (
-            <p className="text-center text-xs text-gray-400 py-8">Nenhuma conversa ainda</p>
+            <p style={{ textAlign: "center", color: "#aaa", fontSize: 13, padding: 24 }}>Nenhuma conversa</p>
           )}
           {conversas.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setSelected(c.id)}
-              className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
-                selected === c.id ? "bg-green-50 border-l-2 border-l-green-500" : ""
-              }`}
-            >
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-sm font-medium text-gray-800">{formatPhone(c.phone)}</span>
-                <span className="text-[10px] text-gray-400">{timeAgo(c.updated_at)}</span>
-              </div>
-              {c.last_message && (
-                <p className="text-xs text-gray-500 truncate">
-                  {c.last_message.role === "assistant" ? "🤖 " : "👤 "}
-                  {c.last_message.content.replace("[admin] ", "✏️ ")}
-                </p>
+            <button key={c.id} onClick={() => setSelected(c.id)}
+              style={{ width: "100%", textAlign: "left", padding: "12px 16px", borderBottom: "1px solid #f9f9f9", background: selected === c.id ? "#f0fdf4" : "#fff", cursor: "pointer", display: "block" }}>
+              <div style={{ fontWeight: 500, fontSize: 13 }}>+{c.phone}</div>
+              {c.last_message?.content && (
+                <div style={{ fontSize: 12, color: "#888", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                  {c.last_message.content.replace("[admin] ", "")}
+                </div>
               )}
-              <span className="text-[10px] text-gray-300">{c.total_messages} mensagens</span>
+              <div style={{ fontSize: 11, color: "#ccc" }}>{c.total_messages} msgs</div>
             </button>
           ))}
         </div>
       </div>
 
       {/* Chat */}
-      <div className="flex-1 bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden">
+      <div style={{ flex: 1, background: "#fff", borderRadius: 16, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {!selected ? (
-          <div className="flex-1 flex items-center justify-center text-gray-400 flex-col gap-2">
-            <MessageSquare size={40} className="text-gray-200" />
-            <p className="text-sm">Selecione uma conversa</p>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#ccc", fontSize: 14 }}>
+            Selecione uma conversa
           </div>
         ) : (
           <>
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
-                  <Phone size={16} className="text-green-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-gray-800">{formatPhone(selectedConversa?.phone ?? "")}</p>
-                  <p className="text-xs text-gray-400">{selectedConversa?.total_messages} mensagens</p>
-                </div>
-              </div>
-              <button
-                onClick={() => encerrar(selected)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-              >
-                <Trash2 size={13} /> Encerrar
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>+{selected}</span>
+              <button onClick={() => encerrar(selected)}
+                style={{ fontSize: 12, color: "#ef4444", background: "#fef2f2", border: "none", borderRadius: 8, padding: "4px 10px", cursor: "pointer" }}>
+                Encerrar
               </button>
             </div>
-
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2" style={{ background: "#f0f2f5" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: 16, background: "#f0f2f5", display: "flex", flexDirection: "column", gap: 8 }}>
               {mensagens.map((m, i) => {
                 const isBot = m.role === "assistant";
                 const isAdmin = m.content?.startsWith("[admin]");
-                const content = m.content?.replace("[admin] ", "") ?? "";
+                const text = m.content?.replace("[admin] ", "") ?? "";
                 return (
-                  <div key={i} className={`flex ${isBot ? "justify-start" : "justify-end"}`}>
-                    <div
-                      className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm shadow-sm ${
-                        isBot
-                          ? isAdmin
-                            ? "bg-blue-500 text-white rounded-tl-sm"
-                            : "bg-white text-gray-800 rounded-tl-sm"
-                          : "bg-[#dcf8c6] text-gray-800 rounded-tr-sm"
-                      }`}
-                    >
-                      {isAdmin && <p className="text-[10px] text-blue-100 mb-0.5">✏️ Admin</p>}
-                      <p className="whitespace-pre-wrap break-words">{content}</p>
+                  <div key={i} style={{ display: "flex", justifyContent: isBot ? "flex-start" : "flex-end" }}>
+                    <div style={{
+                      maxWidth: "75%", padding: "8px 12px", borderRadius: 16, fontSize: 13,
+                      background: isBot ? (isAdmin ? "#3b82f6" : "#fff") : "#dcf8c6",
+                      color: isAdmin ? "#fff" : "#222",
+                    }}>
+                      {isAdmin && <div style={{ fontSize: 10, color: "#bfdbfe", marginBottom: 2 }}>✏️ Admin</div>}
+                      <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{text}</div>
                     </div>
                   </div>
                 );
               })}
-              <div ref={messagesEndRef} />
             </div>
-
-            <div className="p-3 border-t border-gray-100 flex gap-2">
-              <input
-                type="text"
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
+            <div style={{ padding: 12, borderTop: "1px solid #f0f0f0", display: "flex", gap: 8 }}>
+              <input value={texto} onChange={(e) => setTexto(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && enviar()}
                 placeholder="Digite uma mensagem como admin..."
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-300"
-              />
-              <button
-                onClick={enviar}
-                disabled={sending || !texto.trim()}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl transition-colors flex items-center gap-1.5 text-sm"
-              >
-                <Send size={14} /> Enviar
+                style={{ flex: 1, padding: "8px 12px", fontSize: 13, border: "1px solid #e5e7eb", borderRadius: 10, outline: "none" }} />
+              <button onClick={enviar} disabled={!texto.trim()}
+                style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 13 }}>
+                Enviar
               </button>
             </div>
           </>
