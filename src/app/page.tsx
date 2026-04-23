@@ -5,10 +5,15 @@ import SocialProof from "@/components/home/SocialProof";
 import sql from "@/lib/db";
 import type { Product } from "@/components/ui/ProductCard";
 
-async function getHomeProducts() {
+const STATIC_FALLBACK: Product[] = [
+  { id: "1", name: "Produto Teste", brand: "Marca", slug: "produto-teste", price: 999, image: "https://placehold.co/400x400/e8f4fd/2B7DD4?text=Produto" },
+];
+
+async function getHomeProducts(): Promise<Product[]> {
   try {
     const rows = await sql`
-      SELECT p.id, p.name, p.slug, p.price, p.original_price, p.image_url,
+      SELECT p.id, p.name, p.slug, p.price::float AS price,
+             p.original_price::float AS original_price, p.image_url,
              b.name AS brand_name
       FROM products p
       LEFT JOIN brands b ON b.id = p.brand_id
@@ -17,18 +22,11 @@ async function getHomeProducts() {
         AND p.image_url != ''
       ORDER BY p.price DESC
       LIMIT 50
-    `;
-    return rows as { id: string; name: string; slug: string; price: number; original_price: number | null; image_url: string; brand_name: string | null }[];
-  } catch {
-    return [];
-  }
-}
+    ` as { id: string; name: string; slug: string; price: number; original_price: number | null; image_url: string; brand_name: string | null }[];
 
-export default async function HomePage() {
-  const rows = await getHomeProducts();
+    if (!rows || rows.length === 0) return STATIC_FALLBACK;
 
-  function toProduct(r: typeof rows[0]): Product {
-    return {
+    return rows.map((r) => ({
       id: r.id,
       name: r.name,
       brand: r.brand_name ?? "",
@@ -36,35 +34,38 @@ export default async function HomePage() {
       price: Number(r.price),
       originalPrice: r.original_price ? Number(r.original_price) : undefined,
       image: r.image_url,
-    };
+    }));
+  } catch (e) {
+    console.error("[HomePage] getHomeProducts error:", e);
+    return STATIC_FALLBACK;
   }
+}
 
-  const promo = rows.slice(0, 5).map(toProduct);
-  const bestsellers = rows.slice(5, 10).map(toProduct);
+export default async function HomePage() {
+  const products = await getHomeProducts();
+
+  const promo = products.slice(0, 5);
+  const bestsellers = products.slice(5, 10).length > 0 ? products.slice(5, 10) : products.slice(0, 5);
 
   return (
     <div className="pt-6">
       <HeroBanner />
       <CategoryGrid />
 
-      {promo.length > 0 && (
-        <ProductCarousel
-          title="Promoção de Inauguração"
-          subtitle="Preços especiais para os primeiros clientes"
-          badge="INAUGURAÇÃO"
-          products={promo}
-          viewAllHref="/categoria/peptideos"
-        />
-      )}
+      <ProductCarousel
+        title="Promoção de Inauguração"
+        subtitle="Preços especiais para os primeiros clientes"
+        badge="INAUGURAÇÃO"
+        products={promo}
+        viewAllHref="/categoria/peptideos"
+      />
 
-      {bestsellers.length > 0 && (
-        <ProductCarousel
-          title="Mais Vendidos"
-          subtitle="Os favoritos dos nossos clientes"
-          products={bestsellers}
-          viewAllHref="/categoria/peptideos"
-        />
-      )}
+      <ProductCarousel
+        title="Mais Vendidos"
+        subtitle="Os favoritos dos nossos clientes"
+        products={bestsellers}
+        viewAllHref="/categoria/peptideos"
+      />
 
       <SocialProof />
 
