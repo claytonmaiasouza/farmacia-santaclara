@@ -168,6 +168,22 @@ export async function POST(req: NextRequest) {
 
     const result = await generateReply(cleanHistory, text, context);
 
+    // Merge defensivo do carrinho: se o bot retornou menos itens do que havia
+    // sem o cliente pedir remoção explícita, preserva itens anteriores não mencionados
+    const REMOVE_KEYWORDS = ["remove", "tira", "cancela", "sem ", "não quero", "desisti"];
+    const clientePediuRemocao = REMOVE_KEYWORDS.some((k) => lower.includes(k));
+
+    let carrinhoFinal = result.carrinhoAtualizado;
+    if (!clientePediuRemocao && result.carrinhoAtualizado.length < context.carrinho.length) {
+      // Bot perdeu itens do carrinho — mescla: mantém antigos + aplica novos por cima
+      const nomesNovos = new Set(result.carrinhoAtualizado.map((i) => i.nome.toLowerCase()));
+      const itensPreservados = context.carrinho.filter(
+        (i) => !nomesNovos.has(i.nome.toLowerCase())
+      );
+      carrinhoFinal = [...itensPreservados, ...result.carrinhoAtualizado];
+      console.log(`[Webhook] Merge defensivo do carrinho para ${phone}: ${itensPreservados.length} item(ns) recuperado(s)`);
+    }
+
     // Salva mensagens
     await addMessage(phone, { role: "user", content: text }, "whatsapp");
     await addMessage(phone, { role: "assistant", content: result.reply }, "whatsapp");
@@ -175,7 +191,7 @@ export async function POST(req: NextRequest) {
     // Atualiza contexto da sessão
     const novoContext: SessionContext = {
       estado: result.novoEstado,
-      carrinho: result.carrinhoAtualizado,
+      carrinho: carrinhoFinal,
       nomeCliente: result.nomeCliente || context.nomeCliente || "",
       tipoEntrega: result.tipoEntrega,
       enderecoEntrega: result.enderecoEntrega || context.enderecoEntrega || "",
@@ -189,13 +205,13 @@ export async function POST(req: NextRequest) {
     if (result.enviarCatalogo) await sendCatalog(phone);
 
     // Salva pedido quando completo
-    if (result.pedidoPronto && result.carrinhoAtualizado.length > 0) {
+    if (result.pedidoPronto && carrinhoFinal.length > 0) {
       await saveOrder(
         phone,
-        result.nomeCliente || phone,
-        result.carrinhoAtualizado,
+        result.nomeCliente || context.nomeCliente || phone,
+        carrinhoFinal,
         result.tipoEntrega,
-        result.enderecoEntrega
+        result.enderecoEntrega || context.enderecoEntrega || ""
       );
       await clearSession(phone);
       console.log(`[Webhook] Pedido finalizado para ${phone}`);

@@ -122,7 +122,7 @@ Ao final de CADA resposta, inclua obrigatoriamente um bloco JSON no seguinte for
 |||FIM|||
 
 - "estado": um dos estados (INICIO, EXPLORANDO, MONTANDO_PEDIDO, CONFIRMANDO_PEDIDO, AGUARDANDO_ENTREGA, AGUARDANDO_ENDERECO, AGUARDANDO_NOME, FINALIZADO)
-- "carrinho": estado atualizado do carrinho (mantenha itens anteriores, apenas adicione ou remova conforme solicitado)
+- "carrinho": ⚠️ REGRA CRÍTICA — copie TODOS os itens do carrinho atual listado acima e acrescente/modifique apenas o que o cliente pediu nesta mensagem. NUNCA omita itens já existentes no carrinho. Se o carrinho atual tem 2 itens e o cliente quer adicionar 1, o JSON deve ter 3 itens.
 - "preco": valor unitário do produto (número com decimais, ex: 45.00)
 - "pedidoPronto": true SOMENTE quando cliente confirmar E tiver nome E forma de entrega definida
 - "tipoEntrega": "delivery" ou "retirada"
