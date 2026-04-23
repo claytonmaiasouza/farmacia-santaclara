@@ -35,7 +35,7 @@ export default async function AdminCategoriasPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Link href={`/admin/categorias/nova?parent=${parent.id}`} className="flex items-center gap-1.5 text-xs text-[#2B7DD4] hover:underline">
-                    <Plus size={13} /> Adicionar marca
+                    <Plus size={13} /> Adicionar subcategoria
                   </Link>
                   <Link href={`/admin/categorias/${parent.id}`} className="p-1.5 rounded-lg hover:bg-[#e2e8f0] transition-colors">
                     <Pencil size={14} className="text-[#718096]" />

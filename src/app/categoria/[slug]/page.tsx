@@ -105,7 +105,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       {subcategories.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xs font-semibold text-[#718096] uppercase tracking-wider mb-4">
-            {category.parent_id ? "Marcas" : "Subcategorias"}
+            Subcategorias
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {subcategories.map((sub) => (

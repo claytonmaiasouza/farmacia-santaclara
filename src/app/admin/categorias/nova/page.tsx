@@ -14,7 +14,7 @@ export default async function NewCategoryPage({ searchParams }: Props) {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-bold text-[#1a202c]">Nova categoria</h1>
-        <p className="text-sm text-[#718096]">Crie uma categoria ou subcategoria (marca)</p>
+        <p className="text-sm text-[#718096]">Crie uma categoria ou subcategoria</p>
       </div>
       <CategoryForm allCategories={categories} defaultParentId={parent} />
     </div>
