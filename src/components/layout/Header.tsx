@@ -246,4 +246,5 @@ export default function Header() {
 const navItems = [
   { label: "Peptídeos", href: "/categoria/peptideos" },
   { label: "Hormônios", href: "/categoria/hormonios" },
+  { label: "Botox",     href: "/categoria/botox" },
 ];
