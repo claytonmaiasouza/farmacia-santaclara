@@ -56,6 +56,30 @@ export async function getNewProducts(limit = 10): Promise<ProductWithRelations[]
   return rows as unknown as ProductWithRelations[];
 }
 
+export async function getPromoProducts(limit = 5): Promise<ProductWithRelations[]> {
+  const rows = await sql`
+    SELECT ${PRODUCT_SELECT}
+    ${BASE_FROM}
+    WHERE p.active = true AND p.image_url IS NOT NULL AND p.image_url != ''
+    GROUP BY p.id, c.id, b.id
+    ORDER BY p.price DESC
+    LIMIT ${limit}
+  `;
+  return rows as unknown as ProductWithRelations[];
+}
+
+export async function getBestsellerProducts(limit = 5): Promise<ProductWithRelations[]> {
+  const rows = await sql`
+    SELECT ${PRODUCT_SELECT}
+    ${BASE_FROM}
+    WHERE p.active = true AND p.image_url IS NOT NULL AND p.image_url != ''
+    GROUP BY p.id, c.id, b.id
+    ORDER BY p.price DESC
+    LIMIT ${limit} OFFSET ${limit}
+  `;
+  return rows as unknown as ProductWithRelations[];
+}
+
 export async function getProductBySlug(slug: string): Promise<ProductWithRelations | null> {
   const rows = await sql`
     SELECT ${PRODUCT_SELECT}
