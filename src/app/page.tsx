@@ -2,10 +2,12 @@ import HeroBanner from "@/components/home/HeroBanner";
 import CategoryGrid from "@/components/home/CategoryGrid";
 import ProductCarousel from "@/components/home/ProductCarousel";
 import SocialProof from "@/components/home/SocialProof";
-import { getPromoProducts, getBestsellerProducts } from "@/lib/queries/products";
+import { getNewProducts } from "@/lib/queries/products";
 import type { Product } from "@/components/ui/ProductCard";
 
-function mapProduct(p: Awaited<ReturnType<typeof getPromoProducts>>[0]): Product {
+type RawProduct = Awaited<ReturnType<typeof getNewProducts>>[0];
+
+function mapProduct(p: RawProduct): Product {
   return {
     id: p.id,
     name: p.name,
@@ -18,10 +20,13 @@ function mapProduct(p: Awaited<ReturnType<typeof getPromoProducts>>[0]): Product
 }
 
 export default async function HomePage() {
-  const [promo, bestsellers] = await Promise.all([
-    getPromoProducts(5).catch(() => []),
-    getBestsellerProducts(5).catch(() => []),
-  ]);
+  const all = await getNewProducts(50).catch(() => []);
+
+  const withImage = all.filter((p) => p.image_url && p.image_url.trim() !== "");
+  const sorted = [...withImage].sort((a, b) => Number(b.price) - Number(a.price));
+
+  const promo = sorted.slice(0, 5).map(mapProduct);
+  const bestsellers = sorted.slice(5, 10).map(mapProduct);
 
   return (
     <div className="pt-6">
@@ -33,7 +38,7 @@ export default async function HomePage() {
           title="Promoção de Inauguração"
           subtitle="Preços especiais para os primeiros clientes"
           badge="INAUGURAÇÃO"
-          products={promo.map(mapProduct)}
+          products={promo}
           viewAllHref="/categoria/peptideos"
         />
       )}
@@ -42,7 +47,7 @@ export default async function HomePage() {
         <ProductCarousel
           title="Mais Vendidos"
           subtitle="Os favoritos dos nossos clientes"
-          products={bestsellers.map(mapProduct)}
+          products={bestsellers}
           viewAllHref="/categoria/peptideos"
         />
       )}
