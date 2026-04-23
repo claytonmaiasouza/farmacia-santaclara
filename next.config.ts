@@ -64,6 +64,42 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "asteralabs.org",
       },
+      {
+        protocol: "https",
+        hostname: "peptideosdobrasil.com.br",
+      },
+      {
+        protocol: "https",
+        hostname: "www.karytirze.fit",
+      },
+      {
+        protocol: "https",
+        hostname: "drogariasp.vteximg.com.br",
+      },
+      {
+        protocol: "https",
+        hostname: "alluviretatrutide40mg.uk",
+      },
+      {
+        protocol: "https",
+        hostname: "precosnoparaguai.s3.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "singularmedicamentos.fbitsstatic.net",
+      },
+      {
+        protocol: "https",
+        hostname: "derma-solution.com",
+      },
+      {
+        protocol: "https",
+        hostname: "www.ibeautymachine.com",
+      },
+      {
+        protocol: "https",
+        hostname: "isradermbr.com",
+      },
     ],
   },
 };
