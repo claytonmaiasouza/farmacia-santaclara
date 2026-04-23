@@ -2,31 +2,45 @@ import HeroBanner from "@/components/home/HeroBanner";
 import CategoryGrid from "@/components/home/CategoryGrid";
 import ProductCarousel from "@/components/home/ProductCarousel";
 import SocialProof from "@/components/home/SocialProof";
-import { getNewProducts } from "@/lib/queries/products";
+import sql from "@/lib/db";
 import type { Product } from "@/components/ui/ProductCard";
 
-type RawProduct = Awaited<ReturnType<typeof getNewProducts>>[0];
-
-function mapProduct(p: RawProduct): Product {
-  return {
-    id: p.id,
-    name: p.name,
-    brand: (p as { brand?: { name: string } | null }).brand?.name ?? "",
-    slug: p.slug,
-    price: Number(p.price),
-    originalPrice: p.original_price ? Number(p.original_price) : undefined,
-    image: p.image_url ?? "https://placehold.co/400x400/e8f4fd/2B7DD4?text=Produto",
-  };
+async function getHomeProducts() {
+  try {
+    const rows = await sql`
+      SELECT p.id, p.name, p.slug, p.price, p.original_price, p.image_url,
+             b.name AS brand_name
+      FROM products p
+      LEFT JOIN brands b ON b.id = p.brand_id
+      WHERE p.active = true
+        AND p.image_url IS NOT NULL
+        AND p.image_url != ''
+      ORDER BY p.price DESC
+      LIMIT 50
+    `;
+    return rows as { id: string; name: string; slug: string; price: number; original_price: number | null; image_url: string; brand_name: string | null }[];
+  } catch {
+    return [];
+  }
 }
 
 export default async function HomePage() {
-  const all = await getNewProducts(50).catch(() => []);
+  const rows = await getHomeProducts();
 
-  const withImage = all.filter((p) => p.image_url && p.image_url.trim() !== "");
-  const sorted = [...withImage].sort((a, b) => Number(b.price) - Number(a.price));
+  function toProduct(r: typeof rows[0]): Product {
+    return {
+      id: r.id,
+      name: r.name,
+      brand: r.brand_name ?? "",
+      slug: r.slug,
+      price: Number(r.price),
+      originalPrice: r.original_price ? Number(r.original_price) : undefined,
+      image: r.image_url,
+    };
+  }
 
-  const promo = sorted.slice(0, 5).map(mapProduct);
-  const bestsellers = sorted.slice(5, 10).map(mapProduct);
+  const promo = rows.slice(0, 5).map(toProduct);
+  const bestsellers = rows.slice(5, 10).map(toProduct);
 
   return (
     <div className="pt-6">
@@ -54,7 +68,6 @@ export default async function HomePage() {
 
       <SocialProof />
 
-      {/* Banner CTA */}
       <section className="mt-14 bg-gradient-to-r from-[#1A5C2A] to-[#2E7D32] rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
           <h3 className="text-2xl font-bold text-white mb-1">Precisa de orientação?</h3>
