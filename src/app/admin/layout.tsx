@@ -2,15 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { LayoutDashboard, Package, ShoppingBag, Tag, LogOut, Store, MessageSquare } from "lucide-react";
-
-const NAV = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/produtos", label: "Produtos", icon: Package },
-  { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
-  { href: "/admin/categorias", label: "Categorias", icon: Tag },
-  { href: "/admin/conversas", label: "Conversas", icon: MessageSquare },
-];
+import { LogOut, Store } from "lucide-react";
+import AdminNav from "./AdminNav";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -34,19 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
         <nav className="flex-1 px-3 py-4">
           <p className="text-white/30 text-xs font-semibold uppercase tracking-wider px-2 mb-2">Menu</p>
-          <ul className="flex flex-col gap-1">
-            {NAV.map(({ href, label, icon: Icon }) => (
-              <li key={href}>
-                <Link
-                  href={href}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <Icon size={17} />
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <AdminNav />
         </nav>
 
         <div className="px-3 py-4 border-t border-white/10 flex flex-col gap-2">
