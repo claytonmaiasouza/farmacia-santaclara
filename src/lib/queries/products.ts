@@ -57,27 +57,40 @@ export async function getNewProducts(limit = 10): Promise<ProductWithRelations[]
 }
 
 export async function getPromoProducts(limit = 5): Promise<ProductWithRelations[]> {
-  const rows = await sql`
-    SELECT ${PRODUCT_SELECT}
-    ${BASE_FROM}
-    WHERE p.active = true AND p.image_url IS NOT NULL AND p.image_url != ''
+  const rows = await sql<ProductWithRelations[]>`
+    SELECT p.*,
+           row_to_json(c.*) AS category,
+           row_to_json(b.*) AS brand,
+           COALESCE(json_agg(pi.* ORDER BY pi.sort_order) FILTER (WHERE pi.id IS NOT NULL), '[]') AS images
+    FROM products p
+    LEFT JOIN categories c ON c.id = p.category_id
+    LEFT JOIN brands b ON b.id = p.brand_id
+    LEFT JOIN product_images pi ON pi.product_id = p.id
+    WHERE p.active = true AND p.image_url IS NOT NULL AND p.image_url <> ''
     GROUP BY p.id, c.id, b.id
     ORDER BY p.price DESC
     LIMIT ${limit}
   `;
-  return rows as unknown as ProductWithRelations[];
+  return rows;
 }
 
 export async function getBestsellerProducts(limit = 5): Promise<ProductWithRelations[]> {
-  const rows = await sql`
-    SELECT ${PRODUCT_SELECT}
-    ${BASE_FROM}
-    WHERE p.active = true AND p.image_url IS NOT NULL AND p.image_url != ''
+  const offset = limit;
+  const rows = await sql<ProductWithRelations[]>`
+    SELECT p.*,
+           row_to_json(c.*) AS category,
+           row_to_json(b.*) AS brand,
+           COALESCE(json_agg(pi.* ORDER BY pi.sort_order) FILTER (WHERE pi.id IS NOT NULL), '[]') AS images
+    FROM products p
+    LEFT JOIN categories c ON c.id = p.category_id
+    LEFT JOIN brands b ON b.id = p.brand_id
+    LEFT JOIN product_images pi ON pi.product_id = p.id
+    WHERE p.active = true AND p.image_url IS NOT NULL AND p.image_url <> ''
     GROUP BY p.id, c.id, b.id
     ORDER BY p.price DESC
-    LIMIT ${limit} OFFSET ${limit}
+    LIMIT ${limit} OFFSET ${offset}
   `;
-  return rows as unknown as ProductWithRelations[];
+  return rows;
 }
 
 export async function getProductBySlug(slug: string): Promise<ProductWithRelations | null> {
