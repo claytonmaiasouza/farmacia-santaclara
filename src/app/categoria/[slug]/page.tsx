@@ -112,12 +112,11 @@ export default async function CategoryPage({ params, searchParams }: Props) {
               <Link
                 key={sub.id}
                 href={`/categoria/${sub.slug}`}
-                className="group flex items-center justify-between gap-3 bg-white border-2 border-[#e2e8f0] hover:border-[#2B7DD4] hover:bg-blue-50 rounded-2xl px-5 py-4 transition-all"
+                className="group flex items-center justify-center bg-white border-2 border-[#e2e8f0] hover:border-[#2B7DD4] hover:bg-blue-50 rounded-2xl px-5 py-6 transition-all text-center"
               >
-                <span className="text-base font-bold text-[#1a202c] group-hover:text-[#2B7DD4] transition-colors">
+                <span className="text-lg font-bold text-[#1a202c] group-hover:text-[#2B7DD4] transition-colors">
                   {sub.name}
                 </span>
-                <ChevronRight size={18} className="text-[#cbd5e0] group-hover:text-[#2B7DD4] flex-shrink-0 transition-colors" />
               </Link>
             ))}
           </div>
