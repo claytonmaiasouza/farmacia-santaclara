@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Copy } from "lucide-react";
 import type { Category, Brand, Product } from "@/types/database";
 
 interface ProductFormProps {
@@ -64,6 +64,7 @@ export default function ProductForm({ product, categories, brands }: ProductForm
   });
 
   const [loading, setLoading] = useState(false);
+  const [loadingNew, setLoadingNew] = useState(false);
   const [error, setError] = useState("");
 
   function set(field: keyof FormState, value: string | boolean) {
@@ -72,6 +73,48 @@ export default function ProductForm({ product, categories, brands }: ProductForm
 
   function handleNameChange(name: string) {
     setForm((f) => ({ ...f, name, slug: isEdit ? f.slug : toSlug(name) }));
+  }
+
+  async function handleSaveAsNew() {
+    setError("");
+    setLoadingNew(true);
+
+    const suffix = `-${Date.now().toString(36)}`;
+    const payload = {
+      name: form.name,
+      slug: toSlug(form.name) + suffix,
+      short_description: form.short_description || null,
+      description: form.description || null,
+      sku: null,
+      price: parseFloat(form.price),
+      original_price: form.original_price ? parseFloat(form.original_price) : null,
+      cost_price: form.cost_price ? parseFloat(form.cost_price) : null,
+      stock: parseInt(form.stock),
+      min_stock: parseInt(form.min_stock),
+      category_id: form.category_id || null,
+      brand_id: form.brand_id || null,
+      image_url: form.image_url || null,
+      featured: form.featured,
+      active: form.active,
+      requires_prescription: form.requires_prescription,
+    };
+
+    const res = await fetch("/api/admin/produtos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error ?? "Erro ao criar produto");
+      setLoadingNew(false);
+      return;
+    }
+
+    const data = await res.json();
+    router.push(`/admin/produtos/${data.id}`);
+    router.refresh();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -272,15 +315,26 @@ export default function ProductForm({ product, categories, brands }: ProductForm
         <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || loadingNew}
           className="flex items-center gap-2 bg-[#2B7DD4] hover:bg-[#1a5fa8] disabled:opacity-60 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
         >
           {loading ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
           {loading ? "Salvando..." : isEdit ? "Salvar alterações" : "Criar produto"}
         </button>
+        {isEdit && (
+          <button
+            type="button"
+            onClick={handleSaveAsNew}
+            disabled={loading || loadingNew}
+            className="flex items-center gap-2 bg-white border border-[#e2e8f0] hover:border-[#2B7DD4] hover:text-[#2B7DD4] disabled:opacity-60 text-[#1a202c] font-semibold px-6 py-3 rounded-xl transition-colors"
+          >
+            {loadingNew ? <Loader2 size={17} className="animate-spin" /> : <Copy size={17} />}
+            {loadingNew ? "Criando..." : "Salvar como novo produto"}
+          </button>
+        )}
         <button type="button" onClick={() => router.back()} className="px-6 py-3 border border-[#e2e8f0] rounded-xl text-sm text-[#718096] hover:border-[#2B7DD4] transition-colors">
           Cancelar
         </button>
