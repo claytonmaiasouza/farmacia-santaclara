@@ -100,6 +100,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "isradermbr.com",
       },
+      {
+        protocol: "https",
+        hostname: "admin.korupharma.com",
+      },
+      {
+        protocol: "https",
+        hostname: "solvemedics.com",
+      },
     ],
   },
 };
