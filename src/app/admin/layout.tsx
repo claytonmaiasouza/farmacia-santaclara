@@ -11,8 +11,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!(session.user as { isAdmin?: boolean }).isAdmin) redirect("/");
 
   return (
-    <div className="min-h-screen bg-[#f4f6f8] flex">
-      <aside className="w-60 bg-[#1a202c] flex flex-col fixed top-0 left-0 h-full z-40">
+    <div className="fixed inset-0 z-50 bg-[#f4f6f8] flex overflow-hidden">
+      <aside className="w-60 bg-[#1a202c] flex flex-col shrink-0 h-full">
         <div className="px-5 py-5 border-b border-white/10">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-[#2B7DD4] flex items-center justify-center">
@@ -25,12 +25,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4">
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <p className="text-white/30 text-xs font-semibold uppercase tracking-wider px-2 mb-2">Menu</p>
           <AdminNav />
         </nav>
 
-        <div className="px-3 py-4 border-t border-white/10 flex flex-col gap-2">
+        <div className="px-3 py-4 border-t border-white/10 flex flex-col gap-2 shrink-0">
           <Link href="/" className="flex items-center gap-2 px-3 py-2 text-xs text-white/50 hover:text-white transition-colors">
             ← Ver loja
           </Link>
@@ -42,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </aside>
 
-      <div className="flex-1 ml-60 min-h-screen">
+      <div className="flex-1 overflow-y-auto">
         <main className="p-6">{children}</main>
       </div>
     </div>
