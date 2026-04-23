@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, Copy } from "lucide-react";
+import { Loader2, Save, Copy, Upload } from "lucide-react";
 import type { Category, Brand, Product } from "@/types/database";
 
 interface ProductFormProps {
@@ -66,6 +66,27 @@ export default function ProductForm({ product, categories, brands }: ProductForm
   const [loading, setLoading] = useState(false);
   const [loadingNew, setLoadingNew] = useState(false);
   const [error, setError] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Erro ao fazer upload"); return; }
+      set("image_url", data.url);
+    } catch {
+      setError("Erro ao fazer upload da imagem");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   function set(field: keyof FormState, value: string | boolean) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -302,6 +323,24 @@ export default function ProductForm({ product, categories, brands }: ProductForm
             <div>
               <label className={label}>URL da imagem</label>
               <input value={form.image_url} onChange={(e) => set("image_url", e.target.value)} className={input} placeholder="https://..." />
+            </div>
+            <div className="mt-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-[#e2e8f0] hover:border-[#2B7DD4] hover:text-[#2B7DD4] rounded-xl py-3 text-sm text-[#718096] transition-colors disabled:opacity-60"
+              >
+                {uploadingImage ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+                {uploadingImage ? "Enviando..." : "Subir foto (JPG, PNG, WebP · máx 5MB)"}
+              </button>
             </div>
             {form.image_url && (
               // eslint-disable-next-line @next/next/no-img-element
