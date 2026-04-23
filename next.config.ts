@@ -108,6 +108,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "solvemedics.com",
       },
+      {
+        protocol: "https",
+        hostname: "royal-peptides.com",
+      },
     ],
   },
 };
