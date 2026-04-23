@@ -201,12 +201,12 @@ export default function Header() {
       {/* Navegação */}
       <nav className="border-t border-[#e2e8f0] hidden lg:block">
         <div className="max-w-7xl mx-auto px-4">
-          <ul className="flex items-center gap-0">
+          <ul className="flex items-center gap-2">
             {navItems.map((item) => (
               <li key={item.label}>
                 <Link
                   href={item.href}
-                  className="flex items-center px-4 py-3 text-sm font-medium text-[#1a202c] hover:text-[#2B7DD4] hover:bg-[#f4f6f8] transition-colors"
+                  className="flex items-center px-6 py-3 text-base font-semibold text-[#1a202c] hover:text-[#2B7DD4] hover:bg-[#f4f6f8] transition-colors tracking-wide"
                 >
                   {item.label}
                 </Link>
@@ -244,9 +244,6 @@ export default function Header() {
 }
 
 const navItems = [
-  { label: "Peptídeos",            href: "/categoria/peptideos" },
-  { label: "Hormônios",            href: "/categoria/hormonios" },
-  { label: "Vitaminas",            href: "/categoria/vitaminas" },
-  { label: "Suplementos",          href: "/categoria/suplementos" },
-  { label: "Insumos Hospitalares", href: "/categoria/insumos-hospitalares" },
+  { label: "Peptídeos", href: "/categoria/peptideos" },
+  { label: "Hormônios", href: "/categoria/hormonios" },
 ];
