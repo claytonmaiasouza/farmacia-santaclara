@@ -103,18 +103,21 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
       {/* Subcategorias / Marcas */}
       {subcategories.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-sm font-semibold text-[#718096] uppercase tracking-wider mb-3">
-            {category.parent_id ? "Marcas" : "Categoria"}
+        <div className="mb-8">
+          <h2 className="text-xs font-semibold text-[#718096] uppercase tracking-wider mb-4">
+            {category.parent_id ? "Marcas" : "Subcategorias"}
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {subcategories.map((sub) => (
               <Link
                 key={sub.id}
                 href={`/categoria/${sub.slug}`}
-                className="px-4 py-2 bg-white border border-[#e2e8f0] rounded-xl text-sm font-medium text-[#1a202c] hover:border-[#2B7DD4] hover:text-[#2B7DD4] transition-colors"
+                className="group flex items-center justify-between gap-3 bg-white border-2 border-[#e2e8f0] hover:border-[#2B7DD4] hover:bg-blue-50 rounded-2xl px-5 py-4 transition-all"
               >
-                {sub.name}
+                <span className="text-base font-bold text-[#1a202c] group-hover:text-[#2B7DD4] transition-colors">
+                  {sub.name}
+                </span>
+                <ChevronRight size={18} className="text-[#cbd5e0] group-hover:text-[#2B7DD4] flex-shrink-0 transition-colors" />
               </Link>
             ))}
           </div>
