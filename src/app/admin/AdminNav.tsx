@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingBag, Tag, MessageSquare, Layers, Award } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Tag, MessageSquare, Layers, Award, CreditCard } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/produtos", label: "Produtos", icon: Package },
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
+  { href: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard },
   { href: "/admin/categorias", label: "Categorias", icon: Tag },
   { href: "/admin/marcas", label: "Marcas", icon: Award },
   { href: "/admin/carrosseis", label: "Carrosseis", icon: Layers },

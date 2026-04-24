@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
 
+interface PaymentMethod {
+  type: string;
+  label: string;
+  key_value: string;
+  holder: string | null;
+  bank: string | null;
+  agency: string | null;
+  account: string | null;
+}
+
+function buildPaymentLines(methods: PaymentMethod[]): string[] {
+  if (methods.length === 0) {
+    return [`🏦 Chave Pix: \`06541153973\``];
+  }
+  const lines: string[] = [];
+  for (const m of methods) {
+    if (m.type === "pix") {
+      lines.push(`💳 *${m.label}* — Chave Pix: \`${m.key_value}\``);
+      if (m.holder) lines.push(`   Titular: ${m.holder}`);
+    } else {
+      lines.push(`🏦 *${m.label}*`);
+      if (m.bank) lines.push(`   Banco: ${m.bank}`);
+      if (m.agency) lines.push(`   Agência: ${m.agency}`);
+      if (m.account) lines.push(`   Conta: ${m.account}`);
+      if (m.key_value) lines.push(`   Pix: \`${m.key_value}\``);
+      if (m.holder) lines.push(`   Titular: ${m.holder}`);
+    }
+  }
+  return lines;
+}
+
 async function notifyCustomerWhatsApp(phone: string, name: string, orderId: string, total: number, items: { name: string; quantity: number }[]) {
   const evoUrl = process.env.EVOLUTION_API_URL;
   const evoKey = process.env.EVOLUTION_API_KEY;
@@ -11,13 +42,20 @@ async function notifyCustomerWhatsApp(phone: string, name: string, orderId: stri
   const cleanPhone = phone.replace(/\D/g, "");
   const itemsList = items.map((i) => `• ${i.name} x${i.quantity}`).join("\n");
 
+  let paymentMethods: PaymentMethod[] = [];
+  try {
+    paymentMethods = await sql`SELECT * FROM payment_methods WHERE active = TRUE ORDER BY created_at ASC` as PaymentMethod[];
+  } catch { /* tabela ainda não existe — usa fallback */ }
+
+  const paymentLines = buildPaymentLines(paymentMethods);
+
   const text = [
     `*Farmácia Santa Clara — Pedido Confirmado!* ✅`,
     ``,
     `Olá, ${name}! Recebemos seu pedido *#${code}*.`,
     ``,
-    `*Para finalizar, realize o pagamento via Pix:*`,
-    `🏦 Chave Pix (CPF): \`06541153973\``,
+    `*Para finalizar, realize o pagamento:*`,
+    ...paymentLines,
     ``,
     `*Após o pagamento, envie o comprovante para:*`,
     `📧 pagamentos@santaclarafarma.com.py`,
