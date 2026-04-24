@@ -42,11 +42,11 @@ function CarouselCard({ p }: { p: Product }) {
         <div className="mt-2">
           {p.originalPrice && (
             <p className="text-xs text-[#718096] line-through">
-              $ {p.originalPrice.toFixed(2).replace(".", ",")}
+              R$ {p.originalPrice.toFixed(2).replace(".", ",")}
             </p>
           )}
           <p className="text-base font-bold text-[#1A5C2A]">
-            $ {p.price.toFixed(2).replace(".", ",")}
+            R$ {p.price.toFixed(2).replace(".", ",")}
           </p>
         </div>
       </div>
