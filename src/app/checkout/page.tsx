@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight, Loader2, MapPin, User, Store, MessageCircle, CreditCard } from "lucide-react";
+import { ChevronRight, Loader2, MapPin, User, Store, MessageCircle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "31645730876";
@@ -25,17 +25,14 @@ const INITIAL: CustomerForm = {
 };
 
 type DeliveryType = "delivery" | "pickup";
-type PaymentType = "mercadopago" | "whatsapp";
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
   const [form, setForm] = useState<CustomerForm>(INITIAL);
   const [delivery, setDelivery] = useState<DeliveryType>("delivery");
-  const [payment, setPayment] = useState<PaymentType>("whatsapp");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const shipping = 0; // frete já incluso nos preços
+  const shipping = 0;
   const total = totalPrice + shipping;
 
   function set(field: keyof CustomerForm, value: string) {
@@ -67,52 +64,24 @@ export default function CheckoutPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (items.length === 0) return;
-    setError("");
 
-    if (payment === "whatsapp") {
-      // Abre o WhatsApp imediatamente (no contexto do clique) para evitar bloqueio do browser
-      const msg = buildWhatsAppMessage();
-      const waWindow = window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
+    const msg = buildWhatsAppMessage();
+    const waWindow = window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 
-      setLoading(true);
-      try {
-        const res = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items, form, subtotal: totalPrice, shipping, total, delivery, payment }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          console.error("Erro ao registrar pedido:", data.error);
-        }
-      } catch (err) {
-        console.error("Erro de conexão ao registrar pedido:", err);
-      }
-      clearCart();
-      setLoading(false);
-      // Se o browser bloqueou o popup, redireciona na mesma aba como fallback
-      if (!waWindow) {
-        window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
-      }
-      return;
-    }
-
-    // MercadoPago
     setLoading(true);
     try {
-      const res = await fetch("/api/checkout", {
+      await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, form, total, shipping }),
+        body: JSON.stringify({ items, form, subtotal: totalPrice, shipping, total, delivery, payment: "whatsapp" }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro ao processar pagamento");
-      clearCart();
-      window.location.href = data.init_point;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado");
-    } finally {
-      setLoading(false);
+    } catch {
+      // registro em segundo plano, não bloqueia o fluxo
+    }
+    clearCart();
+    setLoading(false);
+    if (!waWindow) {
+      window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
     }
   }
 
@@ -169,7 +138,6 @@ export default function CheckoutPage() {
                 <MapPin size={18} className="text-[#2B7DD4]" /> Entrega
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Entrega */}
                 <button
                   type="button"
                   onClick={() => setDelivery("delivery")}
@@ -183,7 +151,6 @@ export default function CheckoutPage() {
                   </div>
                 </button>
 
-                {/* Retirada */}
                 <button
                   type="button"
                   onClick={() => setDelivery("pickup")}
@@ -198,7 +165,6 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              {/* Endereço — só aparece se entrega */}
               {delivery === "delivery" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-[#e2e8f0]">
                   <div className="sm:col-span-2">
@@ -225,43 +191,19 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* Forma de pagamento */}
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5">
-              <h2 className="font-bold text-[#1a202c] mb-4 flex items-center gap-2">
-                <CreditCard size={18} className="text-[#2B7DD4]" /> Forma de pagamento
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* WhatsApp */}
-                <button
-                  type="button"
-                  onClick={() => setPayment("whatsapp")}
-                  className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${payment === "whatsapp" ? "border-[#25D366] bg-green-50" : "border-[#e2e8f0] hover:border-[#25D366]"}`}
-                >
-                  <MessageCircle size={20} className={payment === "whatsapp" ? "text-[#25D366]" : "text-[#718096]"} />
-                  <div>
-                    <p className="font-semibold text-sm text-[#1a202c]">Finalizar pelo WhatsApp</p>
-                    <p className="text-xs text-[#718096] mt-0.5">Combine o pagamento diretamente com a farmácia</p>
-                  </div>
-                </button>
-
-                {/* MercadoPago */}
-                <button
-                  type="button"
-                  onClick={() => setPayment("mercadopago")}
-                  className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${payment === "mercadopago" ? "border-[#2B7DD4] bg-blue-50" : "border-[#e2e8f0] hover:border-[#2B7DD4]"}`}
-                >
-                  <CreditCard size={20} className={payment === "mercadopago" ? "text-[#2B7DD4]" : "text-[#718096]"} />
-                  <div>
-                    <p className="font-semibold text-sm text-[#1a202c]">MercadoPago</p>
-                    <p className="text-xs text-[#718096] mt-0.5">Pix, cartão de crédito, boleto</p>
-                  </div>
-                </button>
+            {/* Pagamento — informativo */}
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#25D366] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <MessageCircle size={20} className="text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-[#1a202c] text-sm">Pagamento pelo WhatsApp</p>
+                <p className="text-xs text-[#4a5568] mt-1 leading-relaxed">
+                  Após enviar o pedido, nossa equipe entrará em contato pelo WhatsApp para confirmar a disponibilidade e combinar a forma de pagamento (Pix, transferência, cartão ou outro).
+                </p>
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
-            )}
           </div>
 
           {/* Resumo */}
@@ -295,9 +237,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-[#718096]">
                   <span>Frete</span>
-                  <span className={shipping === 0 ? "text-[#1A5C2A] font-medium" : ""}>
-                    {shipping === 0 ? "Grátis" : `R$ ${shipping.toFixed(2).replace(".", ",")}`}
-                  </span>
+                  <span className="text-[#1A5C2A] font-medium">Grátis</span>
                 </div>
                 <hr className="border-[#e2e8f0]" />
                 <div className="flex justify-between font-bold text-[#1a202c] text-base">
@@ -309,18 +249,12 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`mt-5 w-full flex items-center justify-center gap-2 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-colors ${
-                  payment === "whatsapp"
-                    ? "bg-[#25D366] hover:bg-[#1da851]"
-                    : "bg-[#2B7DD4] hover:bg-[#1a5fa8]"
-                }`}
+                className="mt-5 w-full flex items-center justify-center gap-2 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-colors bg-[#25D366] hover:bg-[#1da851]"
               >
                 {loading ? (
                   <><Loader2 size={18} className="animate-spin" /> Processando...</>
-                ) : payment === "whatsapp" ? (
-                  <><MessageCircle size={18} /> Finalizar pelo WhatsApp</>
                 ) : (
-                  <><CreditCard size={18} /> Pagar com MercadoPago</>
+                  <><MessageCircle size={18} /> Finalizar pelo WhatsApp</>
                 )}
               </button>
               <p className="text-xs text-[#718096] text-center mt-3">🔒 Compra segura</p>
