@@ -35,7 +35,7 @@ async function getCarouselProducts(flag: "in_promo" | "in_bestseller"): Promise<
         AND p.image_url IS NOT NULL
         AND p.image_url != ''
       ORDER BY p.name ASC
-      LIMIT 20
+      LIMIT 6
     ` as Row[];
     return rows.map(mapRow);
   } catch (e) {
