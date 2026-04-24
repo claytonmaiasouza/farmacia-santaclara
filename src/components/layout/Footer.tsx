@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, MapPin, Instagram, Facebook } from "lucide-react";
+import { Mail, MapPin, Instagram, Facebook, ShieldCheck, Lock, BadgeCheck } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -101,30 +101,48 @@ export default function Footer() {
               </li>
             </ul>
 
-            {/* Formas de pagamento */}
+            {/* Site Seguro */}
             <div className="mt-6">
-              <h4 className="text-white text-xs font-semibold mb-3 uppercase tracking-wide">
-                Pagamentos
+              <h4 className="text-white text-xs font-semibold mb-3 uppercase tracking-wide flex items-center gap-1.5">
+                <ShieldCheck size={13} className="text-[#6DC040]" /> Site Seguro
               </h4>
-              <div className="flex flex-wrap gap-2">
-                {["Visa", "Master", "Pix", "Boleto"].map((p) => (
-                  <span
-                    key={p}
-                    className="bg-white/10 text-xs px-2.5 py-1 rounded text-gray-300"
-                  >
-                    {p}
-                  </span>
-                ))}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+                  <Lock size={13} className="text-[#6DC040] shrink-0" />
+                  <span className="text-xs text-gray-300">Conexão SSL 256-bit criptografada</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+                  <BadgeCheck size={13} className="text-[#6DC040] shrink-0" />
+                  <span className="text-xs text-gray-300">Dados protegidos e privados</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+                  <ShieldCheck size={13} className="text-[#6DC040] shrink-0" />
+                  <span className="text-xs text-gray-300">Compra 100% segura e garantida</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-white/10 py-4">
-        <div className="max-w-7xl mx-auto px-4 text-xs text-gray-500 text-center">
-          © 2026 Farmácia Santa Clara. Todos os direitos reservados.
+      {/* Security bar */}
+      <div className="border-t border-white/10 py-4 bg-black/20">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-gray-500">© 2026 Farmácia Santa Clara. Todos os direitos reservados.</p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-lg">
+              <Lock size={11} className="text-[#6DC040]" />
+              SSL Seguro
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-lg">
+              <ShieldCheck size={11} className="text-[#6DC040]" />
+              Privacidade Garantida
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-lg">
+              <BadgeCheck size={11} className="text-[#6DC040]" />
+              Compra Segura
+            </div>
+          </div>
         </div>
       </div>
     </footer>
