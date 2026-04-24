@@ -8,8 +8,7 @@ import { useCart } from "@/context/CartContext";
 export default function CartPage() {
   const { items, totalItems, totalPrice, updateQuantity, removeItem } = useCart();
 
-  const shipping = totalPrice >= 150 ? 0 : 15.9;
-  const pix = totalPrice * 0.95;
+  const shipping = 0; // frete incluso nos preços
   const orderTotal = totalPrice + shipping;
 
   if (totalItems === 0) {
@@ -156,10 +155,6 @@ export default function CartPage() {
                 <span>R$ {orderTotal.toFixed(2).replace(".", ",")}</span>
               </div>
 
-              <div className="bg-green-50 rounded-xl px-3 py-2 text-xs text-[#1A5C2A] flex justify-between">
-                <span>💰 No Pix (5% off)</span>
-                <span className="font-bold">R$ {(pix + shipping).toFixed(2).replace(".", ",")}</span>
-              </div>
             </div>
 
             <Link

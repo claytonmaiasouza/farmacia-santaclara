@@ -121,9 +121,6 @@ export default async function ProductPage({ params }: Props) {
             <div className="text-sm text-[#718096] mt-1">
               ou 3x de R$ {(price / 3).toFixed(2).replace(".", ",")} sem juros
             </div>
-            <div className="text-sm text-[#6DC040] font-medium mt-1">
-              ou R$ {(price * 0.95).toFixed(2).replace(".", ",")} no Pix (5% off)
-            </div>
           </div>
 
           <hr className="border-[#e2e8f0]" />
