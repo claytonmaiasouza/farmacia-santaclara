@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw } from "lucide-react";
+import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw, FileText } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -15,6 +15,7 @@ interface ProofData {
   email_from: string;
   email_subject: string;
   received_at: string;
+  proof_file?: string | null;
 }
 
 interface Order {
@@ -110,12 +111,24 @@ function OrderCard({ order, onStatusChange }: { order: Order; onStatusChange: (i
 
       {/* Comprovante recebido */}
       {isProof && order.proof_data && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 flex flex-col gap-0.5">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 flex flex-col gap-1">
           <p className="text-[10px] font-bold text-orange-700 flex items-center gap-1">
             <Mail size={9} /> Comprovante recebido
           </p>
           <p className="text-[10px] text-orange-600 truncate">{order.proof_data.email_from}</p>
           <p className="text-[10px] text-orange-500 truncate italic">{order.proof_data.email_subject}</p>
+          {order.proof_data.proof_file ? (
+            <a
+              href={order.proof_data.proof_file}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-white bg-orange-500 hover:bg-orange-600 px-2 py-1 rounded-lg transition w-fit"
+            >
+              <FileText size={9} /> Ver Comprovante
+            </a>
+          ) : (
+            <p className="text-[10px] text-orange-400 italic">Sem anexo no e-mail</p>
+          )}
         </div>
       )}
 
