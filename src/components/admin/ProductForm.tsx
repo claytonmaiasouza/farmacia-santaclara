@@ -30,6 +30,7 @@ type FormState = {
   requires_prescription: boolean;
   in_promo: boolean;
   in_bestseller: boolean;
+  in_launch: boolean;
 };
 
 function toSlug(str: string) {
@@ -65,6 +66,7 @@ export default function ProductForm({ product, categories, brands }: ProductForm
     requires_prescription: product?.requires_prescription ?? false,
     in_promo: (product as any)?.in_promo ?? false,
     in_bestseller: (product as any)?.in_bestseller ?? false,
+    in_launch: (product as any)?.in_launch ?? false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -124,6 +126,7 @@ export default function ProductForm({ product, categories, brands }: ProductForm
       requires_prescription: form.requires_prescription,
       in_promo: form.in_promo,
       in_bestseller: form.in_bestseller,
+      in_launch: form.in_launch,
     };
 
     const res = await fetch("/api/admin/produtos", {
@@ -168,6 +171,7 @@ export default function ProductForm({ product, categories, brands }: ProductForm
       requires_prescription: form.requires_prescription,
       in_promo: form.in_promo,
       in_bestseller: form.in_bestseller,
+      in_launch: form.in_launch,
     };
 
     const url = isEdit ? `/api/admin/produtos/${product.id}` : "/api/admin/produtos";
@@ -281,6 +285,7 @@ export default function ProductForm({ product, categories, brands }: ProductForm
                 { field: "requires_prescription" as const, label: "Requer prescrição médica" },
                 { field: "in_promo" as const, label: "🏷️ Carrossel: Promoção de Inauguração" },
                 { field: "in_bestseller" as const, label: "⭐ Carrossel: Mais Vendidos" },
+                { field: "in_launch" as const, label: "🆕 Carrossel: Lançamentos" },
               ].map(({ field, label: lbl }) => (
                 <label key={field} className="flex items-center gap-2.5 cursor-pointer">
                   <input

@@ -21,9 +21,9 @@ function mapRow(r: Row): Product {
   };
 }
 
-async function getCarouselProducts(flag: "in_promo" | "in_bestseller"): Promise<Product[]> {
+async function getCarouselProducts(flag: "in_promo" | "in_bestseller" | "in_launch"): Promise<Product[]> {
   try {
-    const col = flag === "in_promo" ? sql`p.in_promo` : sql`p.in_bestseller`;
+    const col = flag === "in_promo" ? sql`p.in_promo` : flag === "in_bestseller" ? sql`p.in_bestseller` : sql`p.in_launch`;
     const rows = await sql`
       SELECT p.id, p.name, p.slug, p.price::float AS price,
              p.original_price::float AS original_price, p.image_url,
@@ -45,9 +45,10 @@ async function getCarouselProducts(flag: "in_promo" | "in_bestseller"): Promise<
 }
 
 export default async function HomePage() {
-  const [promo, bestsellers] = await Promise.all([
+  const [promo, bestsellers, launches] = await Promise.all([
     getCarouselProducts("in_promo"),
     getCarouselProducts("in_bestseller"),
+    getCarouselProducts("in_launch"),
   ]);
 
   return (
@@ -70,6 +71,16 @@ export default async function HomePage() {
           title="Mais Vendidos"
           subtitle="Os favoritos dos nossos clientes"
           products={bestsellers}
+          viewAllHref="/categoria/peptideos"
+        />
+      )}
+
+      {launches.length > 0 && (
+        <ProductCarousel
+          title="Lançamentos"
+          subtitle="Novidades chegando à nossa farmácia"
+          badge="NOVO"
+          products={launches}
           viewAllHref="/categoria/peptideos"
         />
       )}

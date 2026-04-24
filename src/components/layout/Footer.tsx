@@ -47,9 +47,7 @@ export default function Footer() {
               {[
                 { label: "Peptídeos", href: "/categoria/peptideos" },
                 { label: "Hormônios", href: "/categoria/hormonios" },
-                { label: "Vitaminas", href: "/categoria/vitaminas" },
-                { label: "Suplementos", href: "/categoria/suplementos" },
-                { label: "Insumos Hospitalares", href: "/categoria/insumos-hospitalares" },
+                { label: "Botox & Toxinas", href: "/categoria/botox" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link

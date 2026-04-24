@@ -8,13 +8,13 @@ export default async function CarrosseisPage() {
 
   const products = await sql`
     SELECT p.id, p.name, p.image_url, p.price::float AS price,
-           p.in_promo, p.in_bestseller,
+           p.in_promo, p.in_bestseller, p.in_launch,
            b.name AS brand_name
     FROM products p
     LEFT JOIN brands b ON b.id = p.brand_id
     WHERE p.active = true
     ORDER BY p.name ASC
-  ` as { id: string; name: string; brand_name: string | null; image_url: string | null; price: number; in_promo: boolean; in_bestseller: boolean }[];
+  ` as { id: string; name: string; brand_name: string | null; image_url: string | null; price: number; in_promo: boolean; in_bestseller: boolean; in_launch: boolean }[];
 
   return (
     <div>
