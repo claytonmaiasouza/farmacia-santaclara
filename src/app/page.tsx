@@ -76,20 +76,6 @@ export default async function HomePage() {
 
       <SocialProof />
 
-      <section className="mt-14 bg-gradient-to-r from-[#1A5C2A] to-[#2E7D32] rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div>
-          <h3 className="text-2xl font-bold text-white mb-1">Precisa de orientação?</h3>
-          <p className="text-white/80">Nossa equipe de farmacêuticos está pronta para te ajudar.</p>
-        </div>
-        <a
-          href="https://wa.me/5511999999999"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-shrink-0 bg-white text-[#1A5C2A] font-bold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          Falar com farmacêutico
-        </a>
-      </section>
     </div>
   );
 }
