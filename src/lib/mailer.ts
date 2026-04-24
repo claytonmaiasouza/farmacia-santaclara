@@ -155,6 +155,76 @@ function buildEmailHtml(p: SendOrderEmailParams): string {
 </html>`;
 }
 
+export async function sendWelcomeEmail(params: { to: string; customerName: string }): Promise<void> {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST ?? "mail.santaclarafarma.com.py",
+    port: Number(process.env.SMTP_PORT ?? 465),
+    secure: true,
+    auth: {
+      user: process.env.SMTP_CONTACT_USER ?? "contacto@santaclarafarma.com.py",
+      pass: process.env.SMTP_CONTACT_PASS ?? process.env.IMAP_PASS,
+    },
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:600px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+
+    <div style="background:#1A5C2A;padding:28px 32px;text-align:center">
+      <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700">Farmácia Santa Clara</h1>
+      <p style="margin:6px 0 0;color:#a7f3d0;font-size:14px">santaclarafarma.com.py</p>
+    </div>
+
+    <div style="padding:32px">
+      <div style="text-align:center;margin-bottom:28px">
+        <p style="font-size:36px;margin:0">🎉</p>
+        <h2 style="margin:12px 0 6px;color:#1a202c;font-size:20px">Bem-vindo(a), ${params.customerName}!</h2>
+        <p style="margin:0;color:#718096;font-size:14px">Sua conta foi criada com sucesso.</p>
+      </div>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin-bottom:24px">
+        <p style="margin:0 0 8px;font-size:14px;color:#166534;font-weight:600">O que você pode fazer agora:</p>
+        <ul style="margin:0;padding-left:20px;color:#4b5563;font-size:13px;line-height:1.8">
+          <li>Navegar pelo nosso catálogo de produtos</li>
+          <li>Adicionar produtos ao carrinho e finalizar pedidos</li>
+          <li>Acompanhar seus pedidos na área do cliente</li>
+        </ul>
+      </div>
+
+      <div style="text-align:center;margin-bottom:28px">
+        <a href="https://santaclarafarma.com.py" style="display:inline-block;background:#1A5C2A;color:#ffffff;font-weight:700;font-size:14px;padding:14px 32px;border-radius:10px;text-decoration:none">
+          Acessar o site
+        </a>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 20px">
+
+      <p style="margin:0 0 8px;font-size:13px;color:#718096;text-align:center">Dúvidas? Entre em contato:</p>
+      <div style="text-align:center">
+        <a href="https://wa.me/595992959689" style="display:inline-block;background:#25D366;color:#ffffff;font-weight:600;font-size:13px;padding:10px 24px;border-radius:8px;text-decoration:none">
+          💬 WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Cidade del Este, Paraguay</p>
+      <p style="margin:4px 0 0;font-size:11px;color:#9ca3af">🔒 Comunicação segura e criptografada</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: `"Farmácia Santa Clara" <${process.env.SMTP_CONTACT_USER ?? "contacto@santaclarafarma.com.py"}>`,
+    to: params.to,
+    subject: "Bem-vindo(a) à Farmácia Santa Clara! 🎉",
+    html,
+  });
+}
+
 export async function sendOrderConfirmationEmail(params: SendOrderEmailParams): Promise<void> {
   const transporter = createTransport();
   const code = params.orderId.slice(0, 8).toUpperCase();

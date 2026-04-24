@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import sql from "@/lib/db";
+import { sendWelcomeEmail } from "@/lib/mailer";
 
 export async function POST(req: NextRequest) {
   const { name, email, password } = await req.json();
@@ -25,6 +26,8 @@ export async function POST(req: NextRequest) {
     VALUES (${email}, ${hashed}, ${name})
     RETURNING id, email, full_name
   `;
+
+  sendWelcomeEmail({ to: email, customerName: name }).catch((err) => console.error("[Mailer welcome]", err));
 
   return NextResponse.json(user, { status: 201 });
 }
