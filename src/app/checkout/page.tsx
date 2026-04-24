@@ -27,7 +27,7 @@ const INITIAL: CustomerForm = {
 
 type DeliveryType = "delivery" | "pickup";
 
-function SuccessScreen({ orderId }: { orderId: string }) {
+function SuccessScreen({ orderId, total }: { orderId: string; total: number }) {
   const [copied, setCopied] = useState(false);
   const code = orderId.slice(0, 8).toUpperCase();
 
@@ -49,6 +49,9 @@ function SuccessScreen({ orderId }: { orderId: string }) {
           <h2 className="text-xl font-bold text-[#1a202c]">Pedido realizado!</h2>
           <p className="text-[#718096] text-sm mt-1">
             Código: <span className="font-bold text-[#1a202c] font-mono">#{code}</span>
+          </p>
+          <p className="text-lg font-bold text-[#1A5C2A] mt-2">
+            Total: R$ {total.toFixed(2).replace(".", ",")}
           </p>
         </div>
 
@@ -145,7 +148,7 @@ export default function CheckoutPage() {
     setLoading(false);
   }
 
-  if (orderId) return <SuccessScreen orderId={orderId} />;
+  if (orderId) return <SuccessScreen orderId={orderId} total={total} />;
 
   if (items.length === 0) {
     return (
