@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw, FileText } from "lucide-react";
+import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw, FileText, X } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -48,7 +48,43 @@ const COLUMNS = [
 
 const ALL_STATUSES = COLUMNS.map((c) => ({ value: c.value, label: c.label }));
 
-function OrderCard({ order, onStatusChange }: { order: Order; onStatusChange: (id: string, status: string) => void }) {
+function ProofModal({ url, onClose }: { url: string; onClose: () => void }) {
+  const isPdf = url.toLowerCase().endsWith(".pdf");
+  return (
+    <div
+      className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute -top-9 right-0 text-white hover:text-gray-300 transition"
+        >
+          <X size={26} />
+        </button>
+        {isPdf ? (
+          <iframe
+            src={url}
+            className="rounded-xl shadow-2xl"
+            style={{ width: "min(90vw, 800px)", height: "min(85vh, 900px)" }}
+          />
+        ) : (
+          <img
+            src={url}
+            alt="Comprovante"
+            className="rounded-xl shadow-2xl object-contain"
+            style={{ maxWidth: "90vw", maxHeight: "85vh" }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({ order, onStatusChange, onViewProof }: { order: Order; onStatusChange: (id: string, status: string) => void; onViewProof: (url: string) => void }) {
   const [loading, setLoading] = useState(false);
   const isPickup = order.notes?.includes("Retirada") || (!order.shipping_address && order.payment_method === "whatsapp");
   const addr = order.shipping_address;
@@ -118,14 +154,12 @@ function OrderCard({ order, onStatusChange }: { order: Order; onStatusChange: (i
           <p className="text-[10px] text-orange-600 truncate">{order.proof_data.email_from}</p>
           <p className="text-[10px] text-orange-500 truncate italic">{order.proof_data.email_subject}</p>
           {order.proof_data.proof_file ? (
-            <a
-              href={order.proof_data.proof_file}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => onViewProof(order.proof_data!.proof_file!)}
               className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-white bg-orange-500 hover:bg-orange-600 px-2 py-1 rounded-lg transition w-fit"
             >
               <FileText size={9} /> Ver Comprovante
-            </a>
+            </button>
           ) : (
             <p className="text-[10px] text-orange-400 italic">Sem anexo no e-mail</p>
           )}
@@ -165,6 +199,7 @@ export default function KanbanBoard({ initialOrders }: { initialOrders: Order[] 
   const [orders, setOrders] = useState(initialOrders);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<string | null>(null);
+  const [proofModal, setProofModal] = useState<string | null>(null);
   const router = useRouter();
 
   function handleStatusChange(id: string, newStatus: string) {
@@ -194,6 +229,7 @@ export default function KanbanBoard({ initialOrders }: { initialOrders: Order[] 
 
   return (
     <div>
+      {proofModal && <ProofModal url={proofModal} onClose={() => setProofModal(null)} />}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-[#718096]">{total} pedido{total !== 1 ? "s" : ""} no total</p>
         <div className="flex items-center gap-3">
@@ -224,7 +260,7 @@ export default function KanbanBoard({ initialOrders }: { initialOrders: Order[] 
                 {colOrders.length === 0 ? (
                   <p className="text-center text-[#718096] text-xs py-6 italic">Nenhum pedido</p>
                 ) : colOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
+                  <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} onViewProof={setProofModal} />
                 ))}
               </div>
             </div>

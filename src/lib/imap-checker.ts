@@ -161,7 +161,7 @@ export async function checkPaymentEmails(): Promise<{ found: ProofResult[]; erro
               ws.on("error", reject);
               content.on("error", reject);
             });
-            proofFile = `/uploads/proofs/${filename}`;
+            proofFile = `/api/proofs/${filename}`;
           } catch (e) {
             console.error("[IMAP] Falha ao salvar anexo:", e);
           }
