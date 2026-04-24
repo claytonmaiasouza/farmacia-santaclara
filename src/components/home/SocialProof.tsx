@@ -242,8 +242,8 @@ export default function SocialProof() {
           <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={16} className="text-amber-400 fill-amber-400" />)}
           </div>
-          <span className="text-sm font-semibold text-[#1a202c]">4.9</span>
-          <span className="text-sm text-[#718096]">· 200+ avaliações</span>
+          <span className="text-sm font-semibold text-[#1a202c]">4.7</span>
+          <span className="text-sm text-[#718096]">· 40+ avaliações</span>
         </div>
       </div>
 
