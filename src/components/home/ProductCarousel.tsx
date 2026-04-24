@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, ShoppingCart, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import type { Product } from "@/components/ui/ProductCard";
-import { useCart } from "@/context/CartContext";
 
 interface Props {
   title: string;
@@ -16,17 +15,6 @@ interface Props {
 }
 
 function CarouselCard({ p }: { p: Product }) {
-  const { addItem } = useCart();
-  const [added, setAdded] = useState(false);
-
-  function handleAdd(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    addItem({ id: p.id, name: p.name, brand: p.brand, slug: p.slug, price: p.price, image: p.image, quantity: 1 });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  }
-
   return (
     <Link
       href={`/produto/${p.slug}`}
@@ -64,15 +52,10 @@ function CarouselCard({ p }: { p: Product }) {
       </div>
 
       <div className="px-3 pb-3">
-        <button
-          onClick={handleAdd}
-          className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white transition-all ${
-            added ? "bg-[#6DC040]" : "bg-[#2B7DD4] hover:bg-[#1a5fa8]"
-          }`}
-        >
-          {added ? <Check size={14} /> : <ShoppingCart size={14} />}
-          {added ? "Adicionado!" : "Adicionar"}
-        </button>
+        <span className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white bg-[#2B7DD4] group-hover:bg-[#1a5fa8] transition-colors">
+          <ShoppingCart size={14} />
+          Adicionar
+        </span>
       </div>
     </Link>
   );

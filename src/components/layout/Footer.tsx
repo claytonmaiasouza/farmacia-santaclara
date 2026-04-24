@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, MapPin, Instagram, Facebook } from "lucide-react";
+import { Mail, MapPin, Instagram, Facebook } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -94,8 +94,10 @@ export default function Footer() {
                 <span>Rua Cidade Leste<br />Cidade del Este — Alto Paraná<br />Paraguay</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Phone size={16} className="text-[#6DC040] flex-shrink-0" />
-                <span>A definir</span>
+                <Mail size={16} className="text-[#6DC040] flex-shrink-0" />
+                <a href="mailto:contacto@santaclarafarma.com.py" className="hover:text-[#6DC040] transition-colors">
+                  contacto@santaclarafarma.com.py
+                </a>
               </li>
             </ul>
 
