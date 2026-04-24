@@ -12,7 +12,7 @@ export default function HomePage() {
 
         {/* Logo / Nome */}
         <div className="flex items-center gap-3">
-          <Image src="/logo.png" alt="Farmácia Santa Clara" width={44} height={44} className="rounded-xl" onError={() => {}} />
+          <Image src="/logo.png" alt="Farmácia Santa Clara" width={44} height={44} className="rounded-xl" />
           <span className="text-xl font-bold text-[#1a202c]">Farmácia Santa Clara</span>
         </div>
 
