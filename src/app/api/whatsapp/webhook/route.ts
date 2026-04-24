@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
     await ensureContextColumn();
 
     const body = await req.json();
+    console.log("[Webhook] evento:", body.event, "| chaves:", Object.keys(body).join(", "));
     const eventName: string = (body.event ?? "").toLowerCase().replace(/_/g, ".");
     if (eventName !== "messages.upsert") return NextResponse.json({ ok: true });
 
