@@ -23,7 +23,13 @@ export async function getSession(sessionId: string, channel: "whatsapp" | "site"
     LIMIT 1
   `;
   if (!rows[0]) return [];
-  const messages = normalizeMessages(rows[0].messages as unknown[]);
+  let raw = rows[0].messages;
+  // Sessões antigas podiam salvar messages como string JSON em vez de array JSONB
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); } catch { return []; }
+  }
+  if (!Array.isArray(raw)) return [];
+  const messages = normalizeMessages(raw as unknown[]);
   return messages.slice(-HISTORY_LIMIT);
 }
 
