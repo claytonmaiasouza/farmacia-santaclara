@@ -141,21 +141,21 @@ export default function Header() {
 
       {/* Header principal */}
       <div className="max-w-7xl mx-auto px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-6">
-        {/* Logo — metade do tamanho no mobile */}
-        <Link href="/" className="flex-shrink-0 flex flex-col items-center gap-0.5">
+        {/* Logo — metade do tamanho no mobile, nome ao lado */}
+        <Link href="/" className="flex-shrink-0 flex flex-row sm:flex-col items-center gap-2 sm:gap-0.5">
           <Image
             src="/images/logo.png"
             alt="Farmácia Santa Clara"
             width={108}
             height={33}
             priority
-            className="w-[54px] sm:w-[108px] h-auto"
+            className="w-[44px] sm:w-[108px] h-auto"
           />
           <span
-            className="text-sm tracking-wide hidden sm:block"
-            style={{ fontFamily: "var(--font-nunito)", color: "#1A5C2A", fontWeight: 700, letterSpacing: "0.04em" }}
+            className="tracking-wide leading-tight"
+            style={{ fontFamily: "var(--font-nunito)", color: "#1A5C2A", fontWeight: 700, letterSpacing: "0.04em", fontSize: "clamp(10px, 2.8vw, 14px)" }}
           >
-            Farmácia <span style={{ color: "#2B7DD4" }}>Santa Clara</span>
+            Farmácia{" "}<span style={{ color: "#2B7DD4" }}>Santa Clara</span>
           </span>
         </Link>
 
