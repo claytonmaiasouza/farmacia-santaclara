@@ -1,96 +1,152 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import sql from "@/lib/db";
-import type { Message } from "@/lib/whatsapp/session";
+import { getSession, addMessage, clearSession } from "@/lib/whatsapp/session";
+import { generateReply, SessionContext, CarrinhoItem } from "@/lib/whatsapp/claude";
 
 export const dynamic = "force-dynamic";
 
-function getClient() {
-  return new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY ?? "placeholder",
-    baseURL: "https://openrouter.ai/api/v1",
-  });
+const CLEAR_KEYWORDS = ["reiniciar", "recomeçar", "nova conversa"];
+const REMOVE_KEYWORDS = ["remove", "tira", "cancela", "sem ", "não quero", "desisti"];
+
+async function ensureContextColumn() {
+  await sql`ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS context JSONB DEFAULT '{}'::jsonb`;
 }
 
-async function getProductsContext(): Promise<string> {
-  const products = await sql`
-    SELECT p.name, p.price, p.stock,
-           c.name AS category_name, b.name AS brand_name
-    FROM products p
-    LEFT JOIN categories c ON c.id = p.category_id
-    LEFT JOIN brands b ON b.id = p.brand_id
-    WHERE p.active = true
-    ORDER BY p.name
-  `;
-  if (!products.length) return "Nenhum produto disponível.";
-  return products.map((p) => {
-    const price = Number(p.price) > 0 ? `R$ ${Number(p.price).toFixed(2).replace(".", ",")}` : "Consulte o preço";
-    const stock = Number(p.stock) > 0 ? "Em estoque" : "Fora de estoque";
-    return `• ${p.name} | Marca: ${p.brand_name ?? "—"} | Preço: ${price} | ${stock}`;
-  }).join("\n");
-}
-
-async function getHistory(sessionId: string): Promise<Message[]> {
+async function getSiteContext(sessionId: string): Promise<SessionContext> {
   const rows = await sql`
-    SELECT messages FROM chat_sessions
-    WHERE session_id = ${sessionId} AND channel = 'site'
-    LIMIT 1
+    SELECT context FROM chat_sessions
+    WHERE session_id = ${sessionId} AND channel = 'site' LIMIT 1
   `;
-  if (!rows[0]) return [];
-  return (rows[0].messages as Message[]).slice(-20);
+  const ctx = rows[0]?.context as SessionContext | undefined;
+  return {
+    estado: ctx?.estado || "INICIO",
+    carrinho: (ctx?.carrinho as CarrinhoItem[]) || [],
+    nomeCliente: ctx?.nomeCliente || "",
+    tipoEntrega: ctx?.tipoEntrega,
+    enderecoEntrega: ctx?.enderecoEntrega || "",
+  };
 }
 
-async function saveMessages(sessionId: string, userMsg: string, assistantMsg: string) {
-  const newMsgs = JSON.stringify([
-    { role: "user", content: userMsg },
-    { role: "assistant", content: assistantMsg },
-  ]);
+async function saveSiteContext(sessionId: string, context: SessionContext) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await sql`
-    INSERT INTO chat_sessions (session_id, channel, messages)
-    VALUES (${sessionId}, 'site', ${newMsgs}::jsonb)
-    ON CONFLICT (session_id, channel) DO UPDATE
-    SET messages = chat_sessions.messages || ${newMsgs}::jsonb,
-        updated_at = now()
+    UPDATE chat_sessions
+    SET context = ${sql.json(context as any)}, updated_at = now()
+    WHERE session_id = ${sessionId} AND channel = 'site'
   `;
+}
+
+async function saveOrder(
+  sessionId: string,
+  nomeCliente: string,
+  carrinho: CarrinhoItem[],
+  tipoEntrega: "delivery" | "retirada",
+  enderecoEntrega: string
+) {
+  try {
+    const resolvedItems = await Promise.all(
+      carrinho.map(async (item) => {
+        const rows = await sql`
+          SELECT price, name FROM products
+          WHERE name ILIKE ${"%" + item.nome + "%"} AND active = true LIMIT 1
+        `;
+        const product = rows[0];
+        const unitPrice = product ? Number(product.price) : item.preco;
+        return {
+          product_name: product?.name ?? item.nome,
+          quantity: item.quantidade,
+          unit_price: unitPrice,
+          total_price: unitPrice * item.quantidade,
+        };
+      })
+    );
+
+    const subtotal = resolvedItems.reduce((s, i) => s + i.total_price, 0);
+    const shipping = tipoEntrega === "retirada" ? 0 : subtotal * 0.35;
+    const total = subtotal + shipping;
+
+    const [saved] = await sql`
+      INSERT INTO orders (
+        status, subtotal, shipping, discount, total,
+        payment_method, notes, customer_name
+      )
+      VALUES (
+        'pending', ${subtotal}, ${shipping}, 0, ${total},
+        'site_chat',
+        ${`Pedido via Chat do Site — sessão ${sessionId}`},
+        ${nomeCliente || "Cliente Web"}
+      )
+      RETURNING id
+    `;
+
+    if (saved && resolvedItems.length > 0) {
+      await sql`INSERT INTO order_items ${sql(
+        resolvedItems.map((item) => ({ order_id: saved.id, ...item }))
+      )}`;
+    }
+
+    console.log(`[Chat] Pedido salvo: ${saved?.id} — ${nomeCliente}`);
+  } catch (err) {
+    console.error("[Chat] Erro ao salvar pedido:", err);
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, sessionId } = await req.json();
-    if (!message || !sessionId) return NextResponse.json({ reply: "Mensagem inválida." }, { status: 400 });
+    await ensureContextColumn();
 
-    const [productsContext, history] = await Promise.all([
-      getProductsContext(),
-      getHistory(sessionId),
+    const { message, sessionId } = await req.json();
+    if (!message || !sessionId) {
+      return NextResponse.json({ reply: "Mensagem inválida." }, { status: 400 });
+    }
+
+    const lower = message.toLowerCase().trim();
+
+    if (CLEAR_KEYWORDS.some((k) => lower.includes(k))) {
+      await clearSession(sessionId);
+      return NextResponse.json({ reply: "Conversa reiniciada! Como posso te ajudar? 😊" });
+    }
+
+    const [history, context] = await Promise.all([
+      getSession(sessionId, "site"),
+      getSiteContext(sessionId),
     ]);
 
-    const systemPrompt = `Você é o assistente virtual da Farmácia Santa Clara, localizada em Cidade del Este, Paraguai.
-Atenda clientes pelo chat do site, tire dúvidas sobre produtos e ajude a fechar vendas.
+    const result = await generateReply(history, message, context);
 
-PRODUTOS DISPONÍVEIS:
-${productsContext}
+    // Merge defensivo: preserva itens do carrinho se IA retornou menos sem o cliente pedir
+    let carrinhoFinal = result.carrinhoAtualizado;
+    const clientePediuRemocao = REMOVE_KEYWORDS.some((k) => lower.includes(k));
+    if (!clientePediuRemocao && result.carrinhoAtualizado.length < context.carrinho.length) {
+      const nomesNovos = new Set(result.carrinhoAtualizado.map((i) => i.nome.toLowerCase()));
+      const itensPreservados = context.carrinho.filter((i) => !nomesNovos.has(i.nome.toLowerCase()));
+      carrinhoFinal = [...itensPreservados, ...result.carrinhoAtualizado];
+    }
 
-INSTRUÇÕES:
-- Seja simpático, profissional e objetivo
-- Responda sempre em português brasileiro
-- Informe preço e disponibilidade quando perguntado
-- Se o cliente quiser comprar, sugira finalizar pelo WhatsApp ou pelo carrinho do site
-- Mensagens curtas e diretas
-- Nunca invente preços ou informações fora da lista`;
+    await addMessage(sessionId, { role: "user", content: message }, "site");
+    await addMessage(sessionId, { role: "assistant", content: result.reply }, "site");
 
-    const response = await getClient().chat.completions.create({
-      model: "anthropic/claude-3-5-haiku",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...history.map((m) => ({ role: m.role, content: m.content })),
-        { role: "user", content: message },
-      ],
-      max_tokens: 512,
-    });
+    const novoContext: SessionContext = {
+      estado: result.novoEstado,
+      carrinho: carrinhoFinal,
+      nomeCliente: result.nomeCliente || context.nomeCliente || "",
+      tipoEntrega: result.tipoEntrega,
+      enderecoEntrega: result.enderecoEntrega || context.enderecoEntrega || "",
+    };
+    await saveSiteContext(sessionId, novoContext);
 
-    const reply = response.choices[0]?.message?.content ?? "Desculpe, não consegui responder.";
-    await saveMessages(sessionId, message, reply);
-    return NextResponse.json({ reply });
+    if (result.pedidoPronto && carrinhoFinal.length > 0) {
+      await saveOrder(
+        sessionId,
+        result.nomeCliente || context.nomeCliente || "Cliente Web",
+        carrinhoFinal,
+        result.tipoEntrega,
+        result.enderecoEntrega || context.enderecoEntrega || ""
+      );
+      await clearSession(sessionId);
+    }
+
+    return NextResponse.json({ reply: result.reply });
   } catch (err) {
     console.error("[Chat API]", err);
     return NextResponse.json({ reply: "Ocorreu um erro. Tente novamente." }, { status: 500 });
