@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
+import { sendOrderConfirmationEmail } from "@/lib/mailer";
 
 interface PaymentMethod {
   type: string;
@@ -145,6 +146,26 @@ export async function POST(req: NextRequest) {
       total,
       items.map((i: { name: string; quantity: number }) => ({ name: i.name, quantity: i.quantity }))
     );
+
+    if (form.email) {
+      const deliveryLabel = delivery === "pickup"
+        ? "Retirada no balcão — Cidade del Este"
+        : `${form.street}, ${form.number}${form.complement ? ` (${form.complement})` : ""}, ${form.city}/${form.state}`;
+
+      sendOrderConfirmationEmail({
+        to: form.email,
+        customerName: form.name,
+        orderId: result.id,
+        items: items.map((i: { name: string; quantity: number; price: number }) => ({
+          name: i.name,
+          quantity: i.quantity,
+          price: Number(i.price),
+        })),
+        total,
+        delivery: deliveryLabel,
+        paymentMethods: paymentMethods,
+      }).catch((err) => console.error("[Mailer]", err));
+    }
 
     return NextResponse.json({ id: result.id });
   } catch (err) {

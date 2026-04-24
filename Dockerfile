@@ -22,6 +22,7 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/node_modules/pdfkit ./node_modules/pdfkit
 COPY --from=builder /app/node_modules/imapflow ./node_modules/imapflow
+COPY --from=builder /app/node_modules/nodemailer ./node_modules/nodemailer
 RUN mkdir -p .next/cache && chown -R nextjs:nextjs .next
 USER nextjs
 EXPOSE 3000

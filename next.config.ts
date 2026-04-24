@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   typescript: { ignoreBuildErrors: true },
-  serverExternalPackages: ["pdfkit", "imapflow"],
+  serverExternalPackages: ["pdfkit", "imapflow", "nodemailer"],
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
