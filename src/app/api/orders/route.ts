@@ -33,7 +33,13 @@ function buildPaymentLines(methods: PaymentMethod[]): string[] {
   return lines;
 }
 
-async function notifyCustomerWhatsApp(phone: string, name: string, orderId: string, total: number, items: { name: string; quantity: number }[]) {
+async function fetchPaymentMethods(): Promise<PaymentMethod[]> {
+  try {
+    return await sql`SELECT * FROM payment_methods WHERE active = TRUE ORDER BY created_at ASC` as PaymentMethod[];
+  } catch { return []; }
+}
+
+async function notifyCustomerWhatsApp(phone: string, name: string, orderId: string, total: number, items: { name: string; quantity: number }[], paymentMethods: PaymentMethod[]) {
   const evoUrl = process.env.EVOLUTION_API_URL;
   const evoKey = process.env.EVOLUTION_API_KEY;
   const evoInstance = process.env.EVOLUTION_INSTANCE;
@@ -42,11 +48,6 @@ async function notifyCustomerWhatsApp(phone: string, name: string, orderId: stri
   const code = orderId.slice(0, 8).toUpperCase();
   const cleanPhone = phone.replace(/\D/g, "");
   const itemsList = items.map((i) => `• ${i.name} x${i.quantity}`).join("\n");
-
-  let paymentMethods: PaymentMethod[] = [];
-  try {
-    paymentMethods = await sql`SELECT * FROM payment_methods WHERE active = TRUE ORDER BY created_at ASC` as PaymentMethod[];
-  } catch { /* tabela ainda não existe — usa fallback */ }
 
   const paymentLines = buildPaymentLines(paymentMethods);
 
@@ -139,12 +140,15 @@ export async function POST(req: NextRequest) {
       return order;
     });
 
+    const paymentMethods = await fetchPaymentMethods();
+
     notifyCustomerWhatsApp(
       form.phone ?? "",
       form.name,
       result.id,
       total,
-      items.map((i: { name: string; quantity: number }) => ({ name: i.name, quantity: i.quantity }))
+      items.map((i: { name: string; quantity: number }) => ({ name: i.name, quantity: i.quantity })),
+      paymentMethods
     );
 
     if (form.email) {
@@ -163,7 +167,7 @@ export async function POST(req: NextRequest) {
         })),
         total,
         delivery: deliveryLabel,
-        paymentMethods: paymentMethods,
+        paymentMethods,
       }).catch((err) => console.error("[Mailer]", err));
     }
 
