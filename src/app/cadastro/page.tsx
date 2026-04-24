@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,18 +48,23 @@ export default function RegisterPage() {
       return;
     }
 
+    setRegisteredEmail(email);
     setSuccess(true);
-    setTimeout(() => router.push("/login?cadastro=ok"), 2000);
   }
 
   if (success) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <div className="text-center max-w-sm px-4">
-          <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-bold text-[#1a202c]">Conta criada com sucesso!</h2>
-          <p className="text-[#718096] mt-2 text-sm">Faça login para continuar.</p>
-          <p className="text-[#718096] mt-1 text-xs">Redirecionando para o login...</p>
+          <div className="text-5xl mb-4">✉️</div>
+          <h2 className="text-xl font-bold text-[#1a202c]">Verifique seu e-mail!</h2>
+          <p className="text-[#718096] mt-2 text-sm">
+            Enviamos um link de confirmação para{" "}
+            <span className="font-semibold text-[#1a202c]">{registeredEmail}</span>.
+          </p>
+          <p className="text-[#718096] mt-2 text-sm">
+            Clique no link para ativar sua conta. Verifique também a pasta de spam.
+          </p>
         </div>
       </div>
     );

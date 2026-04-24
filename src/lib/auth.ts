@@ -16,7 +16,7 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         const rows = await sql`
-          SELECT id, email, password, full_name, is_admin
+          SELECT id, email, password, full_name, is_admin, email_verified
           FROM users WHERE email = ${credentials.email} LIMIT 1
         `;
         const user = rows[0];
@@ -24,6 +24,10 @@ export const authOptions: NextAuthOptions = {
 
         const valid = await bcrypt.compare(credentials.password as string, user.password as string);
         if (!valid) return null;
+
+        if (user.email_verified === false) {
+          throw new Error("email_not_verified");
+        }
 
         return {
           id: user.id as string,

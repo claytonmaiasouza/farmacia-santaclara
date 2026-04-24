@@ -29,6 +29,12 @@ function LoginForm() {
       redirect: false,
     });
 
+    if (result?.error === "email_not_verified") {
+      setError("Confirme seu e-mail antes de fazer login. Verifique sua caixa de entrada.");
+      setLoading(false);
+      return;
+    }
+
     if (result?.error) {
       setError("E-mail ou senha incorretos.");
       setLoading(false);

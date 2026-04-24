@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import sql from "@/lib/db";
-import { sendWelcomeEmail } from "@/lib/mailer";
+import { sendVerificationEmail } from "@/lib/mailer";
 
 export async function POST(req: NextRequest) {
   const { name, email, password } = await req.json();
@@ -19,15 +20,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Este e-mail já está cadastrado." }, { status: 409 });
   }
 
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(64)`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires_at TIMESTAMPTZ`;
+
   const hashed = await bcrypt.hash(password, 12);
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   const [user] = await sql`
-    INSERT INTO users (email, password, full_name)
-    VALUES (${email}, ${hashed}, ${name})
+    INSERT INTO users (email, password, full_name, email_verified, verification_token, verification_token_expires_at)
+    VALUES (${email}, ${hashed}, ${name}, FALSE, ${token}, ${expiresAt.toISOString()})
     RETURNING id, email, full_name
   `;
 
-  sendWelcomeEmail({ to: email, customerName: name }).catch((err) => console.error("[Mailer welcome]", err));
+  sendVerificationEmail({ to: email, customerName: name, token }).catch((err) =>
+    console.error("[Mailer verify]", err)
+  );
 
   return NextResponse.json(user, { status: 201 });
 }
