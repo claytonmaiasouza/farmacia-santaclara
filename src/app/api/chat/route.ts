@@ -62,8 +62,8 @@ async function saveOrder(
     );
 
     const subtotal = resolvedItems.reduce((s, i) => s + i.total_price, 0);
-    const shipping = tipoEntrega === "retirada" ? 0 : subtotal * 0.35;
-    const total = subtotal + shipping;
+    const shipping = 0; // frete já incluso nos preços
+    const total = subtotal;
 
     const [saved] = await sql`
       INSERT INTO orders (
