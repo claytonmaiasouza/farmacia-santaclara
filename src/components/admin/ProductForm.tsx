@@ -28,6 +28,8 @@ type FormState = {
   featured: boolean;
   active: boolean;
   requires_prescription: boolean;
+  in_promo: boolean;
+  in_bestseller: boolean;
 };
 
 function toSlug(str: string) {
@@ -61,6 +63,8 @@ export default function ProductForm({ product, categories, brands }: ProductForm
     featured: product?.featured ?? false,
     active: product?.active ?? true,
     requires_prescription: product?.requires_prescription ?? false,
+    in_promo: (product as any)?.in_promo ?? false,
+    in_bestseller: (product as any)?.in_bestseller ?? false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -118,6 +122,8 @@ export default function ProductForm({ product, categories, brands }: ProductForm
       featured: form.featured,
       active: form.active,
       requires_prescription: form.requires_prescription,
+      in_promo: form.in_promo,
+      in_bestseller: form.in_bestseller,
     };
 
     const res = await fetch("/api/admin/produtos", {
@@ -160,6 +166,8 @@ export default function ProductForm({ product, categories, brands }: ProductForm
       featured: form.featured,
       active: form.active,
       requires_prescription: form.requires_prescription,
+      in_promo: form.in_promo,
+      in_bestseller: form.in_bestseller,
     };
 
     const url = isEdit ? `/api/admin/produtos/${product.id}` : "/api/admin/produtos";
@@ -271,6 +279,8 @@ export default function ProductForm({ product, categories, brands }: ProductForm
                 { field: "active" as const, label: "Produto ativo (visível na loja)" },
                 { field: "featured" as const, label: "Destaque na home" },
                 { field: "requires_prescription" as const, label: "Requer prescrição médica" },
+                { field: "in_promo" as const, label: "🏷️ Carrossel: Promoção de Inauguração" },
+                { field: "in_bestseller" as const, label: "⭐ Carrossel: Mais Vendidos" },
               ].map(({ field, label: lbl }) => (
                 <label key={field} className="flex items-center gap-2.5 cursor-pointer">
                   <input
