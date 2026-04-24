@@ -35,7 +35,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const shipping = delivery === "pickup" ? 0 : totalPrice * 0.35;
+  const shipping = 0; // frete já incluso nos preços
   const total = totalPrice + shipping;
 
   function set(field: keyof CustomerForm, value: string) {
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
       ...items.map((i) => `• ${i.name} x${i.quantity} — R$ ${(i.price * i.quantity).toFixed(2).replace(".", ",")}`),
       ``,
       `*Subtotal:* R$ ${totalPrice.toFixed(2).replace(".", ",")}`,
-      `*Frete:* ${shipping === 0 ? "Grátis (retirada)" : `R$ ${shipping.toFixed(2).replace(".", ",")} (35%)`}`,
+      `*Frete:* Grátis (incluso no preço)`,
       `*Total:* R$ ${total.toFixed(2).replace(".", ",")}`,
       ``,
       `Gostaria de finalizar este pedido.`,
@@ -178,10 +178,8 @@ export default function CheckoutPage() {
                   <MapPin size={20} className={delivery === "delivery" ? "text-[#2B7DD4]" : "text-[#718096]"} />
                   <div>
                     <p className="font-semibold text-sm text-[#1a202c]">Entrega no endereço</p>
-                    <p className="text-xs text-[#718096] mt-0.5">Frete: 35% do subtotal</p>
-                    <p className="text-xs font-semibold text-[#2B7DD4] mt-1">
-                      R$ {(totalPrice * 0.35).toFixed(2).replace(".", ",")}
-                    </p>
+                    <p className="text-xs text-[#718096] mt-0.5">Enviamos para todo o Brasil</p>
+                    <p className="text-xs font-semibold text-[#1A5C2A] mt-1">Frete grátis</p>
                   </div>
                 </button>
 

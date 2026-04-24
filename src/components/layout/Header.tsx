@@ -99,7 +99,7 @@ export default function Header() {
       </div>
 
       {/* Header principal */}
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3 md:gap-6">
         {/* Logo */}
         <Link href="/" className="flex-shrink-0 flex flex-col items-center gap-0.5">
           <Image
@@ -110,15 +110,15 @@ export default function Header() {
             priority
           />
           <span
-            className="text-sm tracking-wide"
+            className="text-sm tracking-wide hidden sm:block"
             style={{ fontFamily: "var(--font-nunito)", color: "#1A5C2A", fontWeight: 700, letterSpacing: "0.04em" }}
           >
             Farmácia <span style={{ color: "#2B7DD4" }}>Santa Clara</span>
           </span>
         </Link>
 
-        {/* Busca com autocomplete */}
-        <div ref={containerRef} className="flex-1 relative">
+        {/* Busca com autocomplete — oculta no mobile, visível a partir de sm */}
+        <div ref={containerRef} className="flex-1 relative hidden sm:block">
           <form
             className="flex items-center bg-[#f4f6f8] rounded-xl overflow-hidden border border-[#e2e8f0] focus-within:border-[#2B7DD4] transition-colors"
             onSubmit={handleSubmit}
@@ -186,7 +186,7 @@ export default function Header() {
         </div>
 
         {/* Ações */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-shrink-0 ml-auto sm:ml-0">
           <UserMenu />
           <CartButton />
           <button
@@ -219,6 +219,25 @@ export default function Header() {
       {/* Menu mobile */}
       {menuOpen && (
         <div className="lg:hidden border-t border-[#e2e8f0] bg-white">
+          {/* Busca no mobile */}
+          <div className="px-4 py-3 border-b border-[#e2e8f0] sm:hidden">
+            <form
+              className="flex items-center bg-[#f4f6f8] rounded-xl overflow-hidden border border-[#e2e8f0]"
+              onSubmit={(e) => { handleSubmit(e); setMenuOpen(false); }}
+            >
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar produtos..."
+                className="flex-1 bg-transparent px-4 py-2.5 text-sm outline-none placeholder:text-[#718096]"
+                autoComplete="off"
+              />
+              <button type="submit" className="bg-[#2B7DD4] px-4 py-2.5 text-white">
+                <Search size={16} />
+              </button>
+            </form>
+          </div>
           {navItems.map((item) => (
             <Link
               key={item.label}
