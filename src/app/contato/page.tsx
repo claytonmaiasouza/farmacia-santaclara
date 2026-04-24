@@ -33,7 +33,7 @@ export default function ContatoPage() {
           </div>
           <div>
             <p className="font-bold text-[#1a202c] mb-0.5">E-mail</p>
-            <p className="text-sm text-[#4a5568]">contato@santaclarafarma.com</p>
+            <p className="text-sm text-[#4a5568]">contacto@santaclarafarma.com.py</p>
             <p className="text-xs text-[#718096] mt-1">Respondemos em até 24h úteis</p>
           </div>
         </div>
