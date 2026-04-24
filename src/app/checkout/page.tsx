@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ChevronRight, Loader2, MapPin, User, Store, CheckCircle, Copy, Check } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
-const PIX_KEY = "06541153973";
+const PIX_KEY = "XXXXXXXXXXX";
 const PAYMENT_EMAIL = "pagamentos@santaclarafarma.com.py";
 
 interface CustomerForm {

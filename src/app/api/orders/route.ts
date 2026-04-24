@@ -13,7 +13,7 @@ interface PaymentMethod {
 
 function buildPaymentLines(methods: PaymentMethod[]): string[] {
   if (methods.length === 0) {
-    return [`🏦 Chave Pix: \`06541153973\``];
+    return [`🏦 Chave Pix: \`XXXXXXXXXXX\``];
   }
   const lines: string[] = [];
   for (const m of methods) {
