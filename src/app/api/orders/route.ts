@@ -1,6 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
 
+async function notifyCustomerWhatsApp(phone: string, name: string, orderId: string, total: number, items: { name: string; quantity: number }[]) {
+  const evoUrl = process.env.EVOLUTION_API_URL;
+  const evoKey = process.env.EVOLUTION_API_KEY;
+  const evoInstance = process.env.EVOLUTION_INSTANCE;
+  if (!evoUrl || !evoKey || !evoInstance || !phone) return;
+
+  const code = orderId.slice(0, 8).toUpperCase();
+  const cleanPhone = phone.replace(/\D/g, "");
+  const itemsList = items.map((i) => `• ${i.name} x${i.quantity}`).join("\n");
+
+  const text = [
+    `*Farmácia Santa Clara — Pedido Confirmado!* ✅`,
+    ``,
+    `Olá, ${name}! Recebemos seu pedido *#${code}*.`,
+    ``,
+    `*Para finalizar, realize o pagamento via Pix:*`,
+    `🏦 Chave Pix (CPF): \`06541153973\``,
+    ``,
+    `*Após o pagamento, envie o comprovante para:*`,
+    `📧 pagamentos@santaclarafarma.com.py`,
+    ``,
+    `*No assunto do e-mail, coloque:*`,
+    `📋 Comprovante #${code}`,
+    ``,
+    `*Itens:*`,
+    itemsList,
+    ``,
+    `*Total: R$ ${total.toFixed(2).replace(".", ",")}*`,
+    ``,
+    `Assim que confirmarmos o pagamento, seu pedido entra em preparo! 🚀`,
+  ].join("\n");
+
+  try {
+    await fetch(`${evoUrl}/message/sendText/${evoInstance}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: evoKey },
+      body: JSON.stringify({ number: cleanPhone, text }),
+    });
+  } catch {
+    // notificação em segundo plano, não bloqueia o pedido
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { items, form, subtotal, shipping, total, delivery, payment } = await req.json();
@@ -19,7 +62,6 @@ export async function POST(req: NextRequest) {
       phone: form.phone ?? "",
     } : null;
 
-    // Resolve product IDs against the DB (cart may have stale UUIDs)
     const slugs = items.map((i: { slug?: string }) => i.slug).filter(Boolean);
     const dbProducts = slugs.length
       ? await sql`SELECT id, slug FROM products WHERE slug = ANY(${slugs})`
@@ -57,6 +99,14 @@ export async function POST(req: NextRequest) {
 
       return order;
     });
+
+    notifyCustomerWhatsApp(
+      form.phone ?? "",
+      form.name,
+      result.id,
+      total,
+      items.map((i: { name: string; quantity: number }) => ({ name: i.name, quantity: i.quantity }))
+    );
 
     return NextResponse.json({ id: result.id });
   } catch (err) {

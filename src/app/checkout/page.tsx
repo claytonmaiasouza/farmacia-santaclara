@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight, Loader2, MapPin, User, Store, MessageCircle } from "lucide-react";
+import { ChevronRight, Loader2, MapPin, User, Store, CheckCircle, Copy, Check } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
-const WHATSAPP_NUMBER = "595992959689";
+const PIX_KEY = "06541153973";
+const PAYMENT_EMAIL = "pagamentos@santaclarafarma.com.py";
 
 interface CustomerForm {
   name: string;
@@ -26,11 +27,95 @@ const INITIAL: CustomerForm = {
 
 type DeliveryType = "delivery" | "pickup";
 
+function SuccessScreen({ orderId }: { orderId: string }) {
+  const [copied, setCopied] = useState(false);
+  const code = orderId.slice(0, 8).toUpperCase();
+
+  function copyPix() {
+    navigator.clipboard.writeText(PIX_KEY).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="pt-6 max-w-lg mx-auto">
+      <div className="bg-white rounded-2xl border border-[#e2e8f0] p-8 flex flex-col items-center gap-6">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+          <CheckCircle size={34} className="text-green-500" />
+        </div>
+
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-[#1a202c]">Pedido realizado!</h2>
+          <p className="text-[#718096] text-sm mt-1">
+            Código: <span className="font-bold text-[#1a202c] font-mono">#{code}</span>
+          </p>
+        </div>
+
+        <div className="w-full bg-green-50 border border-green-200 rounded-xl p-5">
+          <p className="font-bold text-[#1a202c] text-sm mb-4">Para finalizar seu pedido:</p>
+
+          <ol className="flex flex-col gap-4">
+            <li className="flex gap-3">
+              <span className="w-6 h-6 bg-[#1A5C2A] text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-[#1a202c]">Realize o pagamento via Pix</p>
+                <p className="text-xs text-[#718096] mt-0.5 mb-1.5">Chave Pix (CPF):</p>
+                <div className="flex items-center gap-2">
+                  <code className="bg-white border border-[#e2e8f0] px-2.5 py-1.5 rounded-lg text-sm font-mono font-semibold text-[#1a202c]">
+                    {PIX_KEY}
+                  </code>
+                  <button
+                    onClick={copyPix}
+                    className="flex items-center gap-1 text-xs text-[#2B7DD4] hover:text-[#1a5fa8] transition-colors"
+                  >
+                    {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                    {copied ? "Copiado!" : "Copiar"}
+                  </button>
+                </div>
+              </div>
+            </li>
+
+            <li className="flex gap-3">
+              <span className="w-6 h-6 bg-[#1A5C2A] text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+              <div>
+                <p className="font-semibold text-sm text-[#1a202c]">Envie o comprovante por e-mail</p>
+                <p className="text-xs text-[#718096] mt-1">
+                  Para: <span className="font-medium text-[#1a202c]">{PAYMENT_EMAIL}</span>
+                </p>
+                <p className="text-xs text-[#718096]">
+                  Assunto: <span className="font-medium text-[#1a202c]">Comprovante #{code}</span>
+                </p>
+                <p className="text-xs text-[#718096] mt-0.5 italic">Pode ser PDF ou foto do comprovante</p>
+              </div>
+            </li>
+
+            <li className="flex gap-3">
+              <span className="w-6 h-6 bg-[#1A5C2A] text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+              <div>
+                <p className="font-semibold text-sm text-[#1a202c]">Aguarde a confirmação</p>
+                <p className="text-xs text-[#718096] mt-0.5">
+                  Nossa equipe confirmará o pagamento e seu pedido entra em preparo!
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <Link href="/" className="text-[#2B7DD4] text-sm font-medium hover:underline">
+          Continuar comprando
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
   const [form, setForm] = useState<CustomerForm>(INITIAL);
   const [delivery, setDelivery] = useState<DeliveryType>("delivery");
   const [loading, setLoading] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
 
   const shipping = 0;
   const total = totalPrice + shipping;
@@ -39,51 +124,28 @@ export default function CheckoutPage() {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function buildWhatsAppMessage() {
-    const lines = [
-      `*Novo Pedido — Farmácia Santa Clara*`,
-      ``,
-      `*Cliente:* ${form.name}`,
-      `*Telefone:* ${form.phone}`,
-      `*E-mail:* ${form.email}`,
-      ``,
-      `*Entrega:* ${delivery === "pickup" ? "Retirada no balcão" : `Entrega — ${form.street}, ${form.number}${form.complement ? ` (${form.complement})` : ""}, ${form.city}/${form.state}`}`,
-      ``,
-      `*Itens:*`,
-      ...items.map((i) => `• ${i.name} x${i.quantity} — R$ ${(i.price * i.quantity).toFixed(2).replace(".", ",")}`),
-      ``,
-      `*Subtotal:* R$ ${totalPrice.toFixed(2).replace(".", ",")}`,
-      `*Frete:* Grátis (incluso no preço)`,
-      `*Total:* R$ ${total.toFixed(2).replace(".", ",")}`,
-      ``,
-      `Gostaria de finalizar este pedido.`,
-    ];
-    return encodeURIComponent(lines.join("\n"));
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (items.length === 0) return;
-
-    const msg = buildWhatsAppMessage();
-    const waWindow = window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
-
     setLoading(true);
     try {
-      await fetch("/api/orders", {
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, form, subtotal: totalPrice, shipping, total, delivery, payment: "whatsapp" }),
+        body: JSON.stringify({ items, form, subtotal: totalPrice, shipping, total, delivery, payment: "pix" }),
       });
+      if (res.ok) {
+        const data = await res.json();
+        clearCart();
+        setOrderId(data.id);
+      }
     } catch {
-      // registro em segundo plano, não bloqueia o fluxo
+      // silently ignore
     }
-    clearCart();
     setLoading(false);
-    if (!waWindow) {
-      window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
-    }
   }
+
+  if (orderId) return <SuccessScreen orderId={orderId} />;
 
   if (items.length === 0) {
     return (
@@ -192,18 +254,12 @@ export default function CheckoutPage() {
             </div>
 
             {/* Pagamento — informativo */}
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#25D366] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <MessageCircle size={20} className="text-white" />
-              </div>
-              <div>
-                <p className="font-bold text-[#1a202c] text-sm">Pagamento pelo WhatsApp</p>
-                <p className="text-xs text-[#4a5568] mt-1 leading-relaxed">
-                  Após enviar o pedido, nossa equipe entrará em contato pelo WhatsApp para confirmar a disponibilidade e combinar a forma de pagamento (Pix, transferência, cartão ou outro).
-                </p>
-              </div>
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
+              <p className="font-bold text-[#1a202c] text-sm">Pagamento via Pix</p>
+              <p className="text-xs text-[#4a5568] mt-1 leading-relaxed">
+                Após confirmar o pedido, você receberá a chave Pix e as instruções para envio do comprovante por e-mail.
+              </p>
             </div>
-
           </div>
 
           {/* Resumo */}
@@ -249,12 +305,12 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-5 w-full flex items-center justify-center gap-2 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-colors bg-[#25D366] hover:bg-[#1da851]"
+                className="mt-5 w-full flex items-center justify-center gap-2 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-colors bg-[#1A5C2A] hover:bg-[#154a22]"
               >
                 {loading ? (
                   <><Loader2 size={18} className="animate-spin" /> Processando...</>
                 ) : (
-                  <><MessageCircle size={18} /> Finalizar pelo WhatsApp</>
+                  "Confirmar Pedido"
                 )}
               </button>
               <p className="text-xs text-[#718096] text-center mt-3">🔒 Compra segura</p>
