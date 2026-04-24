@@ -212,14 +212,6 @@ export default function Header() {
                 </Link>
               </li>
             ))}
-            <li className="ml-auto">
-              <Link
-                href="/promocoes"
-                className="px-4 py-3 text-sm font-bold text-[#e53e3e] hover:text-[#c53030] transition-colors flex items-center gap-1"
-              >
-                🔥 Promoções
-              </Link>
-            </li>
           </ul>
         </div>
       </nav>
