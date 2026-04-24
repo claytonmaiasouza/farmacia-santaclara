@@ -30,6 +30,23 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  // Arquiva no histórico permanente antes de deletar
+  await sql`
+    INSERT INTO conversation_history (session_id, channel, messages, context, bot_pausado, started_at, closed_at, total_messages)
+    SELECT
+      session_id,
+      channel,
+      messages,
+      COALESCE(context, '{}'),
+      COALESCE(bot_pausado, FALSE),
+      created_at,
+      NOW(),
+      jsonb_array_length(messages)
+    FROM chat_sessions
+    WHERE session_id = ${id} AND channel = 'whatsapp'
+  `;
+
   await sql`DELETE FROM chat_sessions WHERE session_id = ${id} AND channel = 'whatsapp'`;
   return NextResponse.json({ ok: true });
 }
