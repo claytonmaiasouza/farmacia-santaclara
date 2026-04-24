@@ -93,7 +93,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin size={16} className="text-[#6DC040] mt-0.5 flex-shrink-0" />
-                <span>Rua Cidade Leste<br />Cidade del Este — Alto Paraná<br />Paraguai</span>
+                <span>Rua Cidade Leste<br />Cidade del Este — Alto Paraná<br />Paraguay</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone size={16} className="text-[#6DC040] flex-shrink-0" />
@@ -124,8 +124,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/10 py-4">
         <div className="max-w-7xl mx-auto px-4 text-xs text-gray-500 text-center">
-          © {new Date().getFullYear()} Farmácia Santa Clara. Todos os direitos reservados.
-          CNPJ: 00.000.000/0001-00 — CRF-SP: 0000
+          © 2026 Farmácia Santa Clara. Todos os direitos reservados.
         </div>
       </div>
     </footer>
