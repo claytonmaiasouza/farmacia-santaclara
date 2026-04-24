@@ -4,8 +4,9 @@ import sql from "@/lib/db";
 async function ensureProofColumn() {
   try {
     await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS proof_data JSONB`;
+    await sql`ALTER TYPE order_status ADD VALUE IF NOT EXISTS 'proof_received' AFTER 'pending'`;
   } catch {
-    // coluna já existe ou sem permissão — ignora
+    // já existe — ignora
   }
 }
 
