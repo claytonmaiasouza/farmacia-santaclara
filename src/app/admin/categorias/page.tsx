@@ -2,6 +2,7 @@ import sql from "@/lib/db";
 import type { Category } from "@/types/database";
 import Link from "next/link";
 import { Plus, Pencil } from "lucide-react";
+import DeleteCategoryButton from "./DeleteCategoryButton";
 
 export default async function AdminCategoriasPage() {
   const cats = await sql<Category[]>`SELECT * FROM categories ORDER BY sort_order`;
@@ -40,6 +41,7 @@ export default async function AdminCategoriasPage() {
                   <Link href={`/admin/categorias/${parent.id}`} className="p-1.5 rounded-lg hover:bg-[#e2e8f0] transition-colors">
                     <Pencil size={14} className="text-[#718096]" />
                   </Link>
+                  <DeleteCategoryButton id={parent.id} name={parent.name} />
                 </div>
               </div>
 
@@ -56,9 +58,12 @@ export default async function AdminCategoriasPage() {
                           </span>
                         </td>
                         <td className="px-5 py-2.5 text-right">
-                          <Link href={`/admin/categorias/${sub.id}`} className="p-1.5 rounded-lg hover:bg-[#e2e8f0] transition-colors inline-flex">
-                            <Pencil size={14} className="text-[#718096]" />
-                          </Link>
+                          <div className="flex items-center justify-end gap-1">
+                            <Link href={`/admin/categorias/${sub.id}`} className="p-1.5 rounded-lg hover:bg-[#e2e8f0] transition-colors inline-flex">
+                              <Pencil size={14} className="text-[#718096]" />
+                            </Link>
+                            <DeleteCategoryButton id={sub.id} name={sub.name} />
+                          </div>
                         </td>
                       </tr>
                     ))}
