@@ -12,9 +12,9 @@ const banners = [
     description: "Os melhores peptídeos e hormônios com procedência garantida. Frete já incluso no preço.",
     cta: "Ver produtos",
     href: "/categoria/peptideos",
-    bg: "from-[#1A5C2A] to-[#2E7D32]",
+    image: "https://images.pexels.com/photos/2280571/pexels-photo-2280571.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    overlay: "from-[#0f3d1a]/90 via-[#1A5C2A]/65 to-[#1A5C2A]/10",
     accent: "#6DC040",
-    icon: "🧬",
   },
   {
     id: 2,
@@ -23,9 +23,9 @@ const banners = [
     description: "Nabota, Botulax, Elitox e muito mais. Produtos originais direto de Cidade del Este.",
     cta: "Ver produtos",
     href: "/categoria/botox",
-    bg: "from-[#2B7DD4] to-[#1a5fa8]",
-    accent: "#93c5fd",
-    icon: "💉",
+    image: "https://images.pexels.com/photos/3997989/pexels-photo-3997989.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    overlay: "from-[#0d2647]/92 via-[#1a3f7a]/65 to-[#1a3f7a]/10",
+    accent: "#60a5fa",
   },
 ];
 
@@ -42,60 +42,72 @@ export default function HeroBanner() {
   const prev = () => setCurrent((c) => (c - 1 + banners.length) % banners.length);
   const next = () => setCurrent((c) => (c + 1) % banners.length);
 
-  const banner = banners[current];
-
   return (
-    <div className={`relative w-full bg-gradient-to-r ${banner.bg} rounded-2xl overflow-hidden transition-all duration-500`}>
-      <div className="max-w-7xl mx-auto px-8 py-14 flex items-center justify-between">
-        {/* Conteúdo */}
-        <div className="max-w-xl">
-          <span
-            className="inline-block text-sm font-bold uppercase tracking-widest mb-3 px-3 py-1 rounded-full"
-            style={{ backgroundColor: banner.accent, color: "#fff" }}
-          >
-            {banner.subtitle}
-          </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-3 leading-tight">
-            {banner.title}
-          </h2>
-          <p className="text-white/80 text-lg mb-6">{banner.description}</p>
-          <Link
-            href={banner.href}
-            className="inline-flex items-center gap-2 bg-white text-[#1A5C2A] font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            {banner.cta}
-            <ChevronRight size={18} />
-          </Link>
-        </div>
+    <div className="relative w-full rounded-2xl overflow-hidden" style={{ height: "360px" }}>
+      {banners.map((banner, i) => (
+        <div
+          key={banner.id}
+          className={`absolute inset-0 transition-opacity duration-700 ${i === current ? "opacity-100" : "opacity-0"}`}
+          style={{
+            backgroundImage: `url(${banner.image})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          {/* Overlay gradiente da esquerda */}
+          <div className={`absolute inset-0 bg-gradient-to-r ${banner.overlay}`} />
 
-        {/* Decoração */}
-        <div className="hidden md:flex items-center justify-center opacity-20">
-          <div className="w-52 h-52 rounded-full border-8 border-white" />
+          {/* Conteúdo */}
+          <div className="relative z-10 h-full flex items-center">
+            <div className="max-w-7xl mx-auto px-8 md:px-12 w-full">
+              <div className="max-w-lg">
+                <span
+                  className="inline-block text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1.5 rounded-full shadow"
+                  style={{ backgroundColor: banner.accent, color: "#fff" }}
+                >
+                  {banner.subtitle}
+                </span>
+                <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
+                  {banner.title}
+                </h2>
+                <p className="text-white/90 text-base md:text-lg mb-7 drop-shadow leading-relaxed">
+                  {banner.description}
+                </p>
+                <Link
+                  href={banner.href}
+                  className="inline-flex items-center gap-2 bg-white font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-xl text-[#1A5C2A]"
+                >
+                  {banner.cta}
+                  <ChevronRight size={18} />
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      ))}
 
       {/* Controles */}
       <button
         onClick={prev}
-        className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+        className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/25 hover:bg-black/50 text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors z-10 backdrop-blur-sm"
       >
         <ChevronLeft size={20} />
       </button>
       <button
         onClick={next}
-        className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/25 hover:bg-black/50 text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors z-10 backdrop-blur-sm"
       >
         <ChevronRight size={20} />
       </button>
 
       {/* Dots */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
         {banners.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`w-2.5 h-2.5 rounded-full transition-all ${
-              i === current ? "bg-white w-6" : "bg-white/50"
+            className={`h-2.5 rounded-full transition-all duration-300 ${
+              i === current ? "bg-white w-6" : "bg-white/50 w-2.5"
             }`}
           />
         ))}
