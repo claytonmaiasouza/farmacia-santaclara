@@ -307,6 +307,7 @@ export default function ProductForm({ product, categories, brands }: ProductForm
                     const children = categories.filter(c => c.parent_id === parent.id);
                     return children.length > 0 ? (
                       <optgroup key={parent.id} label={parent.name}>
+                        <option value={parent.id}>{parent.name} (geral)</option>
                         {children.map((c) => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
