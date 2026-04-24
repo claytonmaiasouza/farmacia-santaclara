@@ -291,3 +291,140 @@ export async function sendOrderConfirmationEmail(params: SendOrderEmailParams): 
     html: buildEmailHtml(params),
   });
 }
+
+function baseHtml(content: string): string {
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:600px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+    <div style="background:#1A5C2A;padding:24px 32px;text-align:center">
+      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">Farmácia Santa Clara</h1>
+      <p style="margin:4px 0 0;color:#a7f3d0;font-size:13px">santaclarafarma.com.py</p>
+    </div>
+    <div style="padding:32px">${content}</div>
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Cidade del Este, Paraguay</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendPaymentConfirmedEmail(params: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  total: number;
+}): Promise<void> {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST ?? "mail.santaclarafarma.com.py",
+    port: Number(process.env.SMTP_PORT ?? 465),
+    secure: true,
+    auth: {
+      user: process.env.IMAP_USER ?? "pagamentos@santaclarafarma.com.py",
+      pass: process.env.IMAP_PASS,
+    },
+  });
+
+  const code = params.orderId.slice(0, 8).toUpperCase();
+  const totalFmt = `R$ ${params.total.toFixed(2).replace(".", ",")}`;
+
+  const html = baseHtml(`
+    <div style="text-align:center;margin-bottom:24px">
+      <p style="font-size:48px;margin:0">✅</p>
+      <h2 style="margin:12px 0 6px;color:#1a202c;font-size:20px">Pagamento Confirmado!</h2>
+      <p style="margin:0;color:#718096;font-size:14px">Olá, <strong>${params.customerName}</strong>! Recebemos seu pagamento.</p>
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px">
+      <p style="margin:0 0 6px;font-size:13px;color:#4b5563">Pedido</p>
+      <p style="margin:0;font-family:monospace;font-size:20px;font-weight:700;color:#166534">#${code}</p>
+      <p style="margin:8px 0 0;font-size:16px;font-weight:700;color:#1A5C2A">${totalFmt}</p>
+    </div>
+    <p style="font-size:14px;color:#374151;text-align:center;margin:0 0 24px">
+      Seu pedido entrou em preparo e em breve você receberá uma atualização sobre o envio. 🚀
+    </p>
+    <div style="text-align:center">
+      <a href="https://wa.me/595992959689" style="display:inline-block;background:#25D366;color:#fff;font-weight:600;font-size:13px;padding:10px 24px;border-radius:8px;text-decoration:none">💬 Falar pelo WhatsApp</a>
+    </div>
+  `);
+
+  await transporter.sendMail({
+    from: `"Farmácia Santa Clara" <${process.env.IMAP_USER ?? "pagamentos@santaclarafarma.com.py"}>`,
+    to: params.to,
+    subject: `✅ Pagamento confirmado — Pedido #${code}`,
+    html,
+  });
+}
+
+const STATUS_INFO: Record<string, { emoji: string; title: string; body: string; color: string }> = {
+  processing: {
+    emoji: "🔧",
+    title: "Pedido em preparo!",
+    body: "Estamos preparando seus produtos com todo o cuidado. Em breve seu pedido será enviado!",
+    color: "#6366f1",
+  },
+  shipped: {
+    emoji: "🚚",
+    title: "Pedido enviado!",
+    body: "Seu pedido está a caminho! Aguarde a entrega no endereço informado.",
+    color: "#8b5cf6",
+  },
+  delivered: {
+    emoji: "📦",
+    title: "Pedido entregue!",
+    body: "Seu pedido foi entregue com sucesso. Obrigado por comprar na Farmácia Santa Clara!",
+    color: "#22c55e",
+  },
+  cancelled: {
+    emoji: "❌",
+    title: "Pedido cancelado",
+    body: "Seu pedido foi cancelado. Se tiver dúvidas, entre em contato com nossa equipe.",
+    color: "#ef4444",
+  },
+  refunded: {
+    emoji: "💰",
+    title: "Reembolso processado",
+    body: "Seu reembolso foi processado. O valor será devolvido conforme o meio de pagamento utilizado.",
+    color: "#6b7280",
+  },
+};
+
+export async function sendStatusUpdateEmail(params: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  total: number;
+  status: string;
+}): Promise<void> {
+  const info = STATUS_INFO[params.status];
+  if (!info) return;
+
+  const transporter = createTransport();
+  const code = params.orderId.slice(0, 8).toUpperCase();
+  const totalFmt = `R$ ${params.total.toFixed(2).replace(".", ",")}`;
+
+  const html = baseHtml(`
+    <div style="text-align:center;margin-bottom:24px">
+      <p style="font-size:48px;margin:0">${info.emoji}</p>
+      <h2 style="margin:12px 0 6px;color:#1a202c;font-size:20px">${info.title}</h2>
+      <p style="margin:0;color:#718096;font-size:14px">Olá, <strong>${params.customerName}</strong>!</p>
+    </div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px">
+      <p style="margin:0 0 4px;font-size:13px;color:#718096">Pedido</p>
+      <p style="margin:0;font-family:monospace;font-size:18px;font-weight:700;color:${info.color}">#${code}</p>
+      <p style="margin:6px 0 0;font-size:14px;font-weight:600;color:#1a202c">${totalFmt}</p>
+    </div>
+    <p style="font-size:14px;color:#374151;text-align:center;line-height:1.7;margin:0 0 24px">${info.body}</p>
+    <div style="text-align:center">
+      <a href="https://wa.me/595992959689" style="display:inline-block;background:#25D366;color:#fff;font-weight:600;font-size:13px;padding:10px 24px;border-radius:8px;text-decoration:none">💬 Falar pelo WhatsApp</a>
+    </div>
+  `);
+
+  await transporter.sendMail({
+    from: `"Farmácia Santa Clara" <${process.env.SMTP_USER ?? "vendas@santaclarafarma.com.py"}>`,
+    to: params.to,
+    subject: `${info.emoji} ${info.title} — Pedido #${code}`,
+    html,
+  });
+}
