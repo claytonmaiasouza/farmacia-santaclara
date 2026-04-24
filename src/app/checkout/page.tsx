@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ChevronRight, Loader2, MapPin, User, Store, MessageCircle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "31645730876";
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "595992959689";
 
 interface CustomerForm {
   name: string;
