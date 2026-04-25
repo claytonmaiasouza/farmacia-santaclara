@@ -147,6 +147,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verifica se o bot está pausado
+    console.log(`[Webhook] verificando bot_pausado para ${phone}`);
     const sessionRows = await sql`
       SELECT COALESCE(bot_pausado, FALSE) AS bot_pausado
       FROM chat_sessions WHERE session_id = ${phone} AND channel = 'whatsapp' LIMIT 1
@@ -158,16 +159,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Lê histórico e contexto
+    console.log(`[Webhook] buscando histórico para ${phone}`);
     const history = await getSession(phone);
+    console.log(`[Webhook] histórico: ${history.length} msgs`);
     const context = await getSessionContext(phone);
+    console.log(`[Webhook] contexto estado: ${context.estado}`);
 
-    // Filtra mensagens de sistema/admin do histórico enviado à IA
     const cleanHistory = history.filter(
       (m) => !m.content?.includes("Novo Pedido — Farmácia Santa Clara") &&
              !m.content?.startsWith("[admin]")
     );
 
+    console.log(`[Webhook] chamando generateReply`);
     const result = await generateReply(cleanHistory, text, context);
+    console.log(`[Webhook] reply gerado: ${result.reply.slice(0, 50)}`);
 
     // Merge defensivo do carrinho: se o bot retornou menos itens do que havia
     // sem o cliente pedir remoção explícita, preserva itens anteriores não mencionados
