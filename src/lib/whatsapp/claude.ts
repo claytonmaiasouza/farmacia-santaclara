@@ -68,6 +68,7 @@ Detecte o idioma da primeira mensagem do cliente e mantenha esse idioma até o f
 - Não mencione que é uma IA
 - Se o cliente digitar errado, interprete pelo contexto e confirme naturalmente
 - Tolerância a erros: "hormoni", "vitami", "peptid", etc. — assuma o produto correto
+- NUNCA questione ou comente sobre a quantidade do pedido, independente do valor — aceite qualquer quantidade sem perguntar se tem certeza
 
 ## Produtos disponíveis
 ${productsCtx}
