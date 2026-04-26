@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Check, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Check, Minus, Plus, ArrowLeft } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import Link from "next/link";
 
 interface AddToCartButtonProps {
   product: {
@@ -34,10 +35,6 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
       quantity,
     });
     setAdded(true);
-    setTimeout(() => {
-      setAdded(false);
-      router.back();
-    }, 2000);
   }
 
   return (
@@ -65,32 +62,49 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
         <span className="text-xs text-[#718096]">{product.stock} disponíveis</span>
       </div>
 
-      {/* Botão */}
-      <button
-        onClick={handleAdd}
-        disabled={product.stock === 0}
-        className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white transition-all ${
-          added
-            ? "bg-[#6DC040]"
-            : product.stock === 0
-            ? "bg-gray-300 cursor-not-allowed"
-            : "bg-[#2B7DD4] hover:bg-[#1a5fa8] active:scale-[0.98]"
-        }`}
-      >
-        {added ? (
-          <>
+      {added ? (
+        <div className="flex flex-col gap-2">
+          <div className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white bg-[#6DC040]">
             <Check size={18} />
-            Adicionado!
-          </>
-        ) : product.stock === 0 ? (
-          "Fora de estoque"
-        ) : (
-          <>
-            <ShoppingCart size={18} />
-            Adicionar ao carrinho
-          </>
-        )}
-      </button>
+            Adicionado ao carrinho!
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.back()}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl font-semibold text-sm border border-[#e2e8f0] text-[#4a5568] hover:border-[#2B7DD4] hover:text-[#2B7DD4] transition-colors bg-white"
+            >
+              <ArrowLeft size={15} />
+              Continuar comprando
+            </button>
+            <Link
+              href="/carrinho"
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl font-semibold text-sm bg-[#2B7DD4] hover:bg-[#1a5fa8] text-white transition-colors"
+            >
+              <ShoppingCart size={15} />
+              Ir para o carrinho
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={handleAdd}
+          disabled={product.stock === 0}
+          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white transition-all ${
+            product.stock === 0
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-[#2B7DD4] hover:bg-[#1a5fa8] active:scale-[0.98]"
+          }`}
+        >
+          {product.stock === 0 ? (
+            "Fora de estoque"
+          ) : (
+            <>
+              <ShoppingCart size={18} />
+              Adicionar ao carrinho
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
