@@ -210,6 +210,61 @@ export async function sendVerificationEmail(params: { to: string; customerName: 
   });
 }
 
+export async function sendPasswordResetEmail(params: { to: string; customerName: string; token: string }): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace("localhost:3000", "santaclarafarma.com.py").replace("http://santaclarafarma", "https://santaclarafarma") ?? "https://santaclarafarma.com.py";
+  const link = `${baseUrl}/redefinir-senha?token=${params.token}`;
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST ?? "mail.santaclarafarma.com.py",
+    port: Number(process.env.SMTP_PORT ?? 465),
+    secure: true,
+    auth: {
+      user: process.env.SMTP_CONTACT_USER ?? "contacto@santaclarafarma.com.py",
+      pass: process.env.SMTP_CONTACT_PASS ?? process.env.IMAP_PASS,
+    },
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:600px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+    <div style="background:#1A5C2A;padding:28px 32px;text-align:center">
+      <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700">Farmácia Santa Clara</h1>
+      <p style="margin:6px 0 0;color:#a7f3d0;font-size:14px">santaclarafarma.com.py</p>
+    </div>
+    <div style="padding:32px">
+      <div style="text-align:center;margin-bottom:28px">
+        <p style="font-size:40px;margin:0">🔐</p>
+        <h2 style="margin:12px 0 6px;color:#1a202c;font-size:20px">Redefinir senha</h2>
+        <p style="margin:0;color:#718096;font-size:14px">Olá, <strong>${params.customerName}</strong>! Recebemos uma solicitação para redefinir sua senha.</p>
+      </div>
+      <div style="text-align:center;margin-bottom:28px">
+        <a href="${link}" style="display:inline-block;background:#1A5C2A;color:#ffffff;font-weight:700;font-size:15px;padding:14px 36px;border-radius:10px;text-decoration:none">
+          🔑 Redefinir minha senha
+        </a>
+      </div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:24px">
+        <p style="margin:0;font-size:12px;color:#718096">Se o botão não funcionar, copie e cole este link no seu navegador:</p>
+        <p style="margin:6px 0 0;font-size:11px;color:#4a5568;word-break:break-all;font-family:monospace">${link}</p>
+      </div>
+      <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">Este link expira em 1 hora. Se você não solicitou a redefinição, ignore este e-mail — sua senha permanece a mesma.</p>
+    </div>
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Ciudad del Este, Paraguay</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: `"Farmácia Santa Clara" <${process.env.SMTP_CONTACT_USER ?? "contacto@santaclarafarma.com.py"}>`,
+    to: params.to,
+    subject: "Redefinir senha — Farmácia Santa Clara",
+    html,
+  });
+}
+
 export async function sendWelcomeEmail(params: { to: string; customerName: string }): Promise<void> {
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? "mail.santaclarafarma.com.py",
