@@ -18,6 +18,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
 
+  if (status === "cancelled") {
+    await sql`
+      UPDATE products p
+      SET stock = p.stock + oi.quantity, updated_at = now()
+      FROM order_items oi
+      WHERE oi.order_id = ${id} AND oi.product_id IS NOT NULL AND oi.product_id = p.id
+    `;
+  }
+
   if (STATUS_EMAIL_TRIGGER.has(status)) {
     const rows = await sql`
       SELECT customer_email, customer_name, total FROM orders WHERE id = ${id} LIMIT 1

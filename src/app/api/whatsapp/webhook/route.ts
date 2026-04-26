@@ -65,13 +65,14 @@ async function saveOrder(
     const resolvedItems = await Promise.all(
       carrinho.map(async (item) => {
         const rows = await sql`
-          SELECT price, name FROM products
+          SELECT id, price, name FROM products
           WHERE name ILIKE ${"%" + item.nome + "%"} AND active = true
           LIMIT 1
         `;
         const product = rows[0];
         const unitPrice = product ? Number(product.price) : item.preco;
         return {
+          product_id: product?.id ?? null,
           product_name: product?.name ?? item.nome,
           quantity: item.quantidade,
           unit_price: unitPrice,
@@ -81,7 +82,7 @@ async function saveOrder(
     );
 
     const subtotal = resolvedItems.reduce((s, i) => s + i.total_price, 0);
-    const shipping = 0; // frete já incluso nos preços
+    const shipping = 0;
     const total = subtotal;
 
     const shippingAddress =
@@ -119,6 +120,16 @@ async function saveOrder(
       await sql`INSERT INTO order_items ${sql(
         resolvedItems.map((item) => ({ order_id: saved.id, ...item }))
       )}`;
+
+      // Debit stock for each resolved product
+      for (const item of resolvedItems) {
+        if (item.product_id) {
+          await sql`
+            UPDATE products SET stock = GREATEST(0, stock - ${item.quantity}), updated_at = now()
+            WHERE id = ${item.product_id}
+          `;
+        }
+      }
     }
 
     console.log(`[Webhook] Pedido salvo: ${saved?.id} — ${nomeCliente}`);

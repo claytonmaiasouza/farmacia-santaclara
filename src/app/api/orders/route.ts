@@ -69,6 +69,16 @@ export async function POST(req: NextRequest) {
         await tx`UPDATE coupons SET usage_count = usage_count + 1, updated_at = now() WHERE id = ${coupon_id}`;
       }
 
+      // Debit stock for each item that has a linked product
+      for (const item of items as { id?: string; quantity: number }[]) {
+        if (item.id) {
+          await tx`
+            UPDATE products SET stock = GREATEST(0, stock - ${item.quantity}), updated_at = now()
+            WHERE id = ${item.id}
+          `;
+        }
+      }
+
       return order;
     });
 
