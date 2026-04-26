@@ -205,7 +205,9 @@ export async function POST(req: NextRequest) {
     await saveContext(phone, novoContext);
 
     // Envia resposta ao cliente
+    console.log(`[Webhook] enviando mensagem para ${phone}`);
     await sendMessage(phone, result.reply);
+    console.log(`[Webhook] mensagem enviada`);
 
     // Envia catálogo se solicitado
     if (result.enviarCatalogo) await sendCatalog(phone);

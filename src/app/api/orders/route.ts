@@ -4,7 +4,7 @@ import { sendOrderConfirmationEmail } from "@/lib/mailer";
 
 export async function POST(req: NextRequest) {
   try {
-    const { items, form, subtotal, shipping, total, delivery, payment } = await req.json();
+    const { items, form, subtotal, shipping, discount, total, delivery, payment, coupon_code, coupon_id, utm_source, utm_medium, utm_campaign } = await req.json();
 
     if (!items?.length || !form?.name || !payment) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
@@ -25,13 +25,19 @@ export async function POST(req: NextRequest) {
         INSERT INTO orders (
           status, subtotal, shipping, discount, total,
           payment_method, delivery_type, shipping_address, notes,
-          customer_email
+          customer_email, coupon_code, coupon_id,
+          utm_source, utm_medium, utm_campaign
         ) VALUES (
-          'pending', ${subtotal}, ${shipping}, 0, ${total},
+          'pending', ${subtotal}, ${shipping ?? 0}, ${discount ?? 0}, ${total},
           ${payment}, ${delivery},
           ${shippingAddress ? tx.json(shippingAddress) : null},
           ${delivery === "pickup" ? "Retirada no balcão — Cidade del Este" : null},
-          ${form.email ?? null}
+          ${form.email ?? null},
+          ${coupon_code ?? null},
+          ${coupon_id ?? null},
+          ${utm_source ?? null},
+          ${utm_medium ?? null},
+          ${utm_campaign ?? null}
         )
         RETURNING id
       `;
@@ -49,6 +55,10 @@ export async function POST(req: NextRequest) {
           }))
         )}
       `;
+
+      if (coupon_id) {
+        await tx`UPDATE coupons SET usage_count = usage_count + 1, updated_at = now() WHERE id = ${coupon_id}`;
+      }
 
       return order;
     });
