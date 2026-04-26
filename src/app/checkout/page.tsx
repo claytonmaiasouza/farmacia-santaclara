@@ -119,6 +119,7 @@ export default function CheckoutPage() {
   const [delivery, setDelivery] = useState<DeliveryType>("delivery");
   const [loading, setLoading] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [confirmedTotal, setConfirmedTotal] = useState<number>(0);
 
   const shipping = 0;
   const total = totalPrice + shipping;
@@ -139,6 +140,7 @@ export default function CheckoutPage() {
       });
       if (res.ok) {
         const data = await res.json();
+        setConfirmedTotal(total);
         clearCart();
         setOrderId(data.id);
       }
@@ -148,7 +150,7 @@ export default function CheckoutPage() {
     setLoading(false);
   }
 
-  if (orderId) return <SuccessScreen orderId={orderId} total={total} />;
+  if (orderId) return <SuccessScreen orderId={orderId} total={confirmedTotal} />;
 
   if (items.length === 0) {
     return (

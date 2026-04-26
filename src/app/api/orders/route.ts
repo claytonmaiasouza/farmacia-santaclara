@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
+import { sendOrderConfirmationEmail } from "@/lib/mailer";
 
 export async function POST(req: NextRequest) {
   try {
@@ -51,6 +52,27 @@ export async function POST(req: NextRequest) {
 
       return order;
     });
+
+    if (form.email) {
+      const paymentMethods = await sql`SELECT type, label, key_value, holder, bank, agency, account FROM payment_methods WHERE active = true ORDER BY id LIMIT 5`;
+      const deliveryLabel = delivery === "pickup"
+        ? "Retirada no balcão — Cidade del Este"
+        : `Entrega em ${[form.street, form.number, form.complement].filter(Boolean).join(", ")} — ${form.city}`;
+
+      sendOrderConfirmationEmail({
+        to: form.email,
+        customerName: form.name,
+        orderId: result.id,
+        items: items.map((i: { name: string; price: number; quantity: number }) => ({
+          name: i.name,
+          quantity: i.quantity,
+          price: Number(i.price),
+        })),
+        total,
+        delivery: deliveryLabel,
+        paymentMethods,
+      }).catch((err) => console.error("[Orders API] email error:", err));
+    }
 
     return NextResponse.json({ id: result.id });
   } catch (err) {
