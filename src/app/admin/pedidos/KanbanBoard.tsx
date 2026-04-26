@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw, FileText, X, Tag } from "lucide-react";
+import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw, FileText, X, Tag, Trash2 } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -85,11 +85,12 @@ function ProofModal({ url, onClose }: { url: string; onClose: () => void }) {
   );
 }
 
-function OrderCard({ order, onStatusChange, onViewProof }: { order: Order; onStatusChange: (id: string, status: string) => void; onViewProof: (url: string) => void }) {
+function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Order; onStatusChange: (id: string, status: string) => void; onDelete: (id: string) => void; onViewProof: (url: string) => void }) {
   const [loading, setLoading] = useState(false);
   const isPickup = order.notes?.includes("Retirada") || (!order.shipping_address && order.payment_method === "whatsapp");
   const addr = order.shipping_address;
   const isProof = order.status === "proof_received";
+  const isCancelled = order.status === "cancelled";
 
   async function handleMove(newStatus: string) {
     setLoading(true);
@@ -100,6 +101,13 @@ function OrderCard({ order, onStatusChange, onViewProof }: { order: Order; onSta
     });
     onStatusChange(order.id, newStatus);
     setLoading(false);
+  }
+
+  async function handleDelete() {
+    if (!confirm("Apagar este pedido permanentemente?")) return;
+    setLoading(true);
+    await fetch(`/api/admin/pedidos/${order.id}`, { method: "DELETE" });
+    onDelete(order.id);
   }
 
   return (
@@ -188,6 +196,16 @@ function OrderCard({ order, onStatusChange, onViewProof }: { order: Order; onSta
               <CheckCircle2 size={10} /> Confirmar Pag.
             </button>
           )}
+          {isCancelled && (
+            <button
+              onClick={handleDelete}
+              disabled={loading}
+              className="flex items-center gap-0.5 text-[10px] bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-lg font-semibold transition disabled:opacity-60"
+              title="Apagar pedido"
+            >
+              <Trash2 size={10} /> Apagar
+            </button>
+          )}
           <select
             value={order.status}
             onChange={(e) => handleMove(e.target.value)}
@@ -213,6 +231,10 @@ export default function KanbanBoard({ initialOrders }: { initialOrders: Order[] 
 
   function handleStatusChange(id: string, newStatus: string) {
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: newStatus } : o));
+  }
+
+  function handleDelete(id: string) {
+    setOrders((prev) => prev.filter((o) => o.id !== id));
   }
 
   async function handleCheckEmails() {
@@ -269,7 +291,7 @@ export default function KanbanBoard({ initialOrders }: { initialOrders: Order[] 
                 {colOrders.length === 0 ? (
                   <p className="text-center text-[#718096] text-xs py-6 italic">Nenhum pedido</p>
                 ) : colOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} onViewProof={setProofModal} />
+                  <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} onDelete={handleDelete} onViewProof={setProofModal} />
                 ))}
               </div>
             </div>
