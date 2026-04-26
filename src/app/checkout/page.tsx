@@ -127,7 +127,10 @@ export default function CheckoutPage() {
   const [confirmedDiscount, setConfirmedDiscount] = useState(0);
 
   const [couponInput, setCouponInput] = useState("");
-  const [coupon, setCoupon] = useState<Coupon | null>(null);
+  const [coupon, setCoupon] = useState<Coupon | null>(() => {
+    if (typeof window === "undefined") return null;
+    try { return JSON.parse(sessionStorage.getItem("applied_coupon") || "null"); } catch { return null; }
+  });
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState("");
 
@@ -220,6 +223,7 @@ export default function CheckoutPage() {
         sessionStorage.removeItem("utm_source");
         sessionStorage.removeItem("utm_medium");
         sessionStorage.removeItem("utm_campaign");
+        sessionStorage.removeItem("applied_coupon");
         setOrderId(data.id);
       }
     } catch {

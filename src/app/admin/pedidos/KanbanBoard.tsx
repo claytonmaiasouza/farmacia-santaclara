@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw, FileText, X } from "lucide-react";
+import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw, FileText, X, Tag } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -30,6 +30,7 @@ interface Order {
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
+  coupon_code?: string | null;
   created_at: string;
   order_items: OrderItem[];
   proof_data?: ProofData | null;
@@ -146,6 +147,12 @@ function OrderCard({ order, onStatusChange, onViewProof }: { order: Order; onSta
           <p className="text-[11px] text-[#718096]">+{order.order_items.length - 3} item(s)</p>
         )}
       </div>
+
+      {order.coupon_code && (
+        <div className="flex items-center gap-1 text-[10px] text-violet-700 bg-violet-50 border border-violet-200 rounded-lg px-2 py-1 w-fit">
+          <Tag size={9} /> <span className="font-bold font-mono">{order.coupon_code}</span>
+        </div>
+      )}
 
       {/* Comprovante recebido */}
       {isProof && order.proof_data && (

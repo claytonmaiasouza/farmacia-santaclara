@@ -1,15 +1,64 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2, ShoppingBag, ChevronRight, Tag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ChevronRight, Tag, Loader2, X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+
+interface Coupon {
+  id: string;
+  code: string;
+  discount_type: "tracking" | "percentage" | "fixed";
+  discount_value: number;
+}
 
 export default function CartPage() {
   const { items, totalItems, totalPrice, updateQuantity, removeItem } = useCart();
 
-  const shipping = 0; // frete incluso nos preços
-  const orderTotal = totalPrice + shipping;
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<Coupon | null>(() => {
+    if (typeof window === "undefined") return null;
+    try { return JSON.parse(sessionStorage.getItem("applied_coupon") || "null"); } catch { return null; }
+  });
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+
+  const discount = coupon
+    ? coupon.discount_type === "percentage"
+      ? (totalPrice * coupon.discount_value) / 100
+      : coupon.discount_type === "fixed"
+      ? Math.min(coupon.discount_value, totalPrice)
+      : 0
+    : 0;
+
+  const orderTotal = Math.max(0, totalPrice - discount);
+
+  async function applyCoupon() {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError("");
+    const res = await fetch("/api/coupons/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: couponInput }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setCoupon(data);
+      sessionStorage.setItem("applied_coupon", JSON.stringify(data));
+      setCouponInput("");
+    } else {
+      const d = await res.json();
+      setCouponError(d.error || "Cupom inválido");
+    }
+    setCouponLoading(false);
+  }
+
+  function removeCoupon() {
+    setCoupon(null);
+    sessionStorage.removeItem("applied_coupon");
+  }
 
   if (totalItems === 0) {
     return (
@@ -38,7 +87,6 @@ export default function CartPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lista de itens */}
         <div className="lg:col-span-2 flex flex-col gap-3">
-          {/* Frete grátis banner */}
           {totalPrice < 150 && (
             <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 text-sm text-[#2B7DD4] flex items-center gap-2">
               <Tag size={15} />
@@ -59,7 +107,6 @@ export default function CartPage() {
               key={item.id}
               className="bg-white rounded-2xl border border-[#e2e8f0] p-4 flex gap-4"
             >
-              {/* Imagem */}
               <Link href={`/produto/${item.slug}`} className="flex-shrink-0">
                 <div className="w-20 h-20 bg-[#f4f6f8] rounded-xl overflow-hidden">
                   <Image
@@ -72,7 +119,6 @@ export default function CartPage() {
                 </div>
               </Link>
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <span className="text-xs text-[#2B7DD4] font-medium">{item.brand}</span>
                 <Link href={`/produto/${item.slug}`}>
@@ -85,7 +131,6 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {/* Qty + remover */}
               <div className="flex flex-col items-end justify-between gap-2 flex-shrink-0">
                 <button
                   onClick={() => removeItem(item.id)}
@@ -133,8 +178,8 @@ export default function CartPage() {
 
         {/* Resumo */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5 sticky top-24">
-            <h2 className="font-bold text-[#1a202c] text-lg mb-4">Resumo do pedido</h2>
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5 sticky top-24 flex flex-col gap-4">
+            <h2 className="font-bold text-[#1a202c] text-lg">Resumo do pedido</h2>
 
             <div className="flex flex-col gap-2.5 text-sm">
               <div className="flex justify-between text-[#718096]">
@@ -143,29 +188,70 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between text-[#718096]">
                 <span>Frete</span>
-                <span className={shipping === 0 ? "text-[#6DC040] font-medium" : ""}>
-                  {shipping === 0 ? "Grátis" : `R$ ${shipping.toFixed(2).replace(".", ",")}`}
-                </span>
+                <span className="text-[#6DC040] font-medium">Grátis</span>
               </div>
-
-              <hr className="border-[#e2e8f0] my-1" />
-
+              {coupon && discount > 0 && (
+                <div className="flex justify-between text-green-600 font-medium">
+                  <span>Desconto ({coupon.code})</span>
+                  <span>− R$ {discount.toFixed(2).replace(".", ",")}</span>
+                </div>
+              )}
+              <hr className="border-[#e2e8f0]" />
               <div className="flex justify-between font-bold text-[#1a202c] text-base">
                 <span>Total</span>
                 <span>R$ {orderTotal.toFixed(2).replace(".", ",")}</span>
               </div>
-
             </div>
+
+            {/* Campo de cupom */}
+            {coupon ? (
+              <div className="flex items-center justify-between bg-violet-50 border border-violet-200 rounded-xl px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <Tag size={13} className="text-violet-600" />
+                  <span className="text-xs font-bold text-violet-700 font-mono">{coupon.code}</span>
+                  {coupon.discount_type !== "tracking" && (
+                    <span className="text-xs text-violet-600">
+                      {coupon.discount_type === "percentage"
+                        ? `${coupon.discount_value}% off`
+                        : `R$ ${Number(coupon.discount_value).toFixed(2)} off`}
+                    </span>
+                  )}
+                </div>
+                <button onClick={removeCoupon} className="text-violet-400 hover:text-violet-700 transition">
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex gap-2">
+                  <input
+                    value={couponInput}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
+                    onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                    placeholder="Código do cupom"
+                    className="flex-1 border border-[#e2e8f0] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2B7DD4]"
+                  />
+                  <button
+                    onClick={applyCoupon}
+                    disabled={couponLoading || !couponInput.trim()}
+                    className="px-3 py-2 bg-[#2B7DD4] hover:bg-[#2266b8] text-white text-sm font-medium rounded-xl transition disabled:opacity-50"
+                  >
+                    {couponLoading ? <Loader2 size={14} className="animate-spin" /> : "Aplicar"}
+                  </button>
+                </div>
+                {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+              </div>
+            )}
 
             <Link
               href="/checkout"
-              className="mt-5 w-full flex items-center justify-center gap-2 bg-[#2B7DD4] hover:bg-[#1a5fa8] text-white font-semibold py-3.5 rounded-xl transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-[#2B7DD4] hover:bg-[#1a5fa8] text-white font-semibold py-3.5 rounded-xl transition-colors"
             >
               Finalizar compra
               <ChevronRight size={18} />
             </Link>
 
-            <p className="text-xs text-[#718096] text-center mt-3">
+            <p className="text-xs text-[#718096] text-center">
               🔒 Pagamento 100% seguro
             </p>
           </div>
