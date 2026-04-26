@@ -38,7 +38,7 @@ function SuccessScreen({ orderId, total, discount }: { orderId: string; total: n
     fetch("/api/payment-methods")
       .then((r) => r.json())
       .then((methods) => {
-        const pix = methods.find((m: { type: string; active: boolean; key_value: string }) => m.type === "pix" && m.active);
+        const pix = methods.find((m: { type: string; key_value: string }) => m.type === "pix");
         if (pix) setPixKey(pix.key_value);
       })
       .catch(() => {});
