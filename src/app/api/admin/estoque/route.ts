@@ -18,11 +18,18 @@ export async function GET() {
       p.min_stock,
       p.active,
       p.sku,
-      COALESCE(SUM(oi.quantity), 0)::int        AS units_sold,
-      COALESCE(SUM(oi.total_price), 0)::numeric AS revenue,
-      COUNT(DISTINCT oi.order_id)::int          AS order_count
+      COALESCE(SUM(oi.quantity) FILTER (
+        WHERE o.status NOT IN ('cancelled', 'refunded')
+      ), 0)::int AS units_sold,
+      COALESCE(SUM(oi.total_price) FILTER (
+        WHERE o.status IN ('paid', 'processing', 'shipped', 'delivered')
+      ), 0)::numeric AS revenue,
+      COUNT(DISTINCT oi.order_id) FILTER (
+        WHERE o.status NOT IN ('cancelled', 'refunded')
+      )::int AS order_count
     FROM products p
     LEFT JOIN order_items oi ON oi.product_id = p.id
+    LEFT JOIN orders o ON o.id = oi.order_id
     WHERE p.active = true
     GROUP BY p.id
     ORDER BY units_sold DESC, p.name ASC
