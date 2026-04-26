@@ -99,6 +99,7 @@ function ProofModal({ url, onClose }: { url: string; onClose: () => void }) {
 function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Order; onStatusChange: (id: string, status: string) => void; onDelete: (id: string) => void; onViewProof: (url: string) => void }) {
   const [loading, setLoading] = useState(false);
   const [moveError, setMoveError] = useState("");
+  const [pendingRefund, setPendingRefund] = useState(false);
   const isPickup = order.notes?.includes("Retirada") || (!order.shipping_address && order.payment_method === "whatsapp");
   const addr = order.shipping_address;
   const isProof = order.status === "proof_received";
@@ -111,10 +112,14 @@ function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Or
 
   async function handleMove(newStatus: string) {
     if (newStatus === order.status) return;
-    let restoreStock: boolean | undefined;
     if (newStatus === "refunded") {
-      restoreStock = confirm("Deseja devolver os itens ao estoque?");
+      setPendingRefund(true);
+      return;
     }
+    await doMove(newStatus, undefined);
+  }
+
+  async function doMove(newStatus: string, restoreStock: boolean | undefined) {
     setLoading(true);
     setMoveError("");
     const body: Record<string, unknown> = { status: newStatus };
@@ -248,6 +253,27 @@ function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Or
           </select>
         </div>
       </div>
+      {pendingRefund && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col gap-1.5">
+          <p className="text-[11px] font-semibold text-gray-700">Devolver itens ao estoque?</p>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => { setPendingRefund(false); doMove("refunded", true); }}
+              disabled={loading}
+              className="flex-1 text-[11px] font-semibold bg-green-500 hover:bg-green-600 text-white py-1 rounded-lg transition disabled:opacity-60"
+            >
+              Sim
+            </button>
+            <button
+              onClick={() => { setPendingRefund(false); doMove("refunded", false); }}
+              disabled={loading}
+              className="flex-1 text-[11px] font-semibold bg-gray-400 hover:bg-gray-500 text-white py-1 rounded-lg transition disabled:opacity-60"
+            >
+              Não
+            </button>
+          </div>
+        </div>
+      )}
       {moveError && (
         <p className="text-[10px] text-red-500 mt-1">{moveError}</p>
       )}
