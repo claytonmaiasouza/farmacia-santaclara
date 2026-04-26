@@ -5,16 +5,8 @@ import sql from "@/lib/db";
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import type { Order, OrderItem } from "@/types/database";
+import OrderStatusBadge from "./OrderStatusBadge";
 
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  pending:    { label: "Aguardando pagamento", color: "text-amber-600 bg-amber-50 border-amber-100" },
-  paid:       { label: "Pago",                 color: "text-blue-600 bg-blue-50 border-blue-100" },
-  processing: { label: "Em preparo",           color: "text-blue-600 bg-blue-50 border-blue-100" },
-  shipped:    { label: "Enviado",              color: "text-purple-600 bg-purple-50 border-purple-100" },
-  delivered:  { label: "Entregue",             color: "text-[#1A5C2A] bg-green-50 border-green-100" },
-  cancelled:  { label: "Cancelado",            color: "text-red-600 bg-red-50 border-red-100" },
-  refunded:   { label: "Reembolsado",          color: "text-gray-600 bg-gray-50 border-gray-100" },
-};
 
 interface OrderWithItems extends Order {
   order_items: OrderItem[];
@@ -52,7 +44,6 @@ export default async function OrdersPage() {
         </div>
       ) : (
         orders.map((order) => {
-          const status = STATUS_LABEL[order.status] ?? STATUS_LABEL.pending;
           return (
             <div key={order.id} className="bg-white rounded-2xl border border-[#e2e8f0] p-5">
               <div className="flex flex-wrap items-start justify-between gap-3 mb-4 pb-4 border-b border-[#e2e8f0]">
@@ -66,9 +57,7 @@ export default async function OrdersPage() {
                     })}
                   </p>
                 </div>
-                <span className={`text-xs font-semibold px-3 py-1.5 rounded-xl border ${status.color}`}>
-                  {status.label}
-                </span>
+                <OrderStatusBadge orderId={order.id} initialStatus={order.status} />
               </div>
 
               <div className="flex flex-col gap-2 mb-4">
