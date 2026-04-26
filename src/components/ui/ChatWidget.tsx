@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 
 interface Message {
@@ -11,14 +12,27 @@ interface Message {
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "595000000000";
 
 export default function ChatWidget() {
+  const { data: session, status } = useSession();
+  const isLoggedIn = status === "authenticated" && !!session?.user?.id;
+  const userName = session?.user?.name ?? null;
+
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Olá! 👋 Sou o assistente da Farmácia Santa Clara. Como posso te ajudar?" },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Greeting changes based on auth status once session resolves
+  useEffect(() => {
+    if (status === "loading") return;
+    const greeting = isLoggedIn && userName
+      ? `Olá, ${userName.split(" ")[0]}! 👋 Sou a Clarita, assistente da Farmácia Santa Clara. Como posso te ajudar hoje?`
+      : "Olá! 👋 Sou a Clarita, assistente da Farmácia Santa Clara. Como posso te ajudar?";
+    setMessages([{ role: "assistant", content: greeting }]);
+  }, [status, isLoggedIn, userName]);
+
   const sessionId = useMemo(() => {
+    if (isLoggedIn && session?.user?.id) return `user-${session.user.id}`;
     if (typeof window === "undefined") return "";
     const key = "sc_chat_session";
     const existing = localStorage.getItem(key);
@@ -26,7 +40,7 @@ export default function ChatWidget() {
     const newId = crypto.randomUUID();
     localStorage.setItem(key, newId);
     return newId;
-  }, []);
+  }, [isLoggedIn, session?.user?.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,7 +59,13 @@ export default function ChatWidget() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg.content, sessionId }),
+        body: JSON.stringify({
+          message: userMsg.content,
+          sessionId,
+          userId: session?.user?.id ?? null,
+          userName: session?.user?.name ?? null,
+          userEmail: session?.user?.email ?? null,
+        }),
       });
       const data = await res.json();
       setMessages([...newMessages, { role: "assistant", content: data.reply }]);
@@ -70,7 +90,9 @@ export default function ChatWidget() {
               </div>
               <div>
                 <p className="text-white text-sm font-semibold">Farmácia Santa Clara</p>
-                <p className="text-white/70 text-xs">Assistente virtual</p>
+                <p className="text-white/70 text-xs">
+                  {isLoggedIn && userName ? `Olá, ${userName.split(" ")[0]}` : "Assistente virtual"}
+                </p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white transition-colors">
@@ -82,7 +104,7 @@ export default function ChatWidget() {
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-[#f4f6f8]">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                <div className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.role === "user"
                     ? "bg-[#1A5C2A] text-white rounded-br-sm"
                     : "bg-white text-[#1a202c] rounded-bl-sm shadow-sm border border-[#e2e8f0]"
