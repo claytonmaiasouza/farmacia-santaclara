@@ -16,12 +16,28 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Status inválido" }, { status: 400 });
   }
 
+  // Fetch current status before updating to detect transitions
+  const [current] = await sql`SELECT status FROM orders WHERE id = ${id} LIMIT 1`;
+  const oldStatus = current?.status as string | undefined;
+
   await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
 
-  if (status === "cancelled") {
+  const wasCancelled = oldStatus === "cancelled";
+  const isCancelled  = status === "cancelled";
+
+  if (!wasCancelled && isCancelled) {
+    // Active → Cancelled: restore stock
     await sql`
       UPDATE products p
       SET stock = p.stock + oi.quantity, updated_at = now()
+      FROM order_items oi
+      WHERE oi.order_id = ${id} AND oi.product_id IS NOT NULL AND oi.product_id = p.id
+    `;
+  } else if (wasCancelled && !isCancelled) {
+    // Cancelled → Active: deduct stock again
+    await sql`
+      UPDATE products p
+      SET stock = GREATEST(0, p.stock - oi.quantity), updated_at = now()
       FROM order_items oi
       WHERE oi.order_id = ${id} AND oi.product_id IS NOT NULL AND oi.product_id = p.id
     `;
