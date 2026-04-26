@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-helpers";
 import sql from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
   await sql`ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS bot_pausado BOOLEAN DEFAULT FALSE`;
 
   const rows = await sql`

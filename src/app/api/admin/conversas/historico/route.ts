@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-helpers";
 import sql from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
   const rows = await sql`
     SELECT id, session_id, messages, started_at, closed_at, total_messages
     FROM conversation_history

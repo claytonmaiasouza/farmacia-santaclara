@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-helpers";
 import sql from "@/lib/db";
 import { sendMessage } from "@/lib/whatsapp/evolution";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
   const { id } = await params;
   const { texto } = await req.json();
   if (!texto?.trim()) return NextResponse.json({ error: "Mensagem vazia" }, { status: 400 });

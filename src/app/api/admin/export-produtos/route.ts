@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-helpers";
 import sql from "@/lib/db";
 
 interface ProductRow {
@@ -13,6 +14,7 @@ interface ProductRow {
 }
 
 export async function GET() {
+  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
   const products = await sql<ProductRow[]>`
     SELECT p.name,
            b.name   AS brand_name,

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth-helpers";
 import sql from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
   const { id } = await params;
   const rows = await sql`
     SELECT session_id, messages, updated_at, COALESCE(bot_pausado, FALSE) AS bot_pausado
@@ -29,6 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
   const { id } = await params;
 
   // Arquiva no histórico permanente antes de deletar
