@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       </div>
     </div>
     <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 32px;text-align:center">
-      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Cidade del Este, Paraguay · santaclarafarma.com.py</p>
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Ciudad del Este, Paraguay · santaclarafarma.com.py</p>
     </div>
   </div>
 </body>

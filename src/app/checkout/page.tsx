@@ -347,7 +347,7 @@ export default function CheckoutPage() {
                   <Store size={20} className={delivery === "pickup" ? "text-[#1A5C2A]" : "text-[#718096]"} />
                   <div>
                     <p className="font-semibold text-sm text-[#1a202c]">Retirada no balcão</p>
-                    <p className="text-xs text-[#718096] mt-0.5">Cidade del Este — Paraguai</p>
+                    <p className="text-xs text-[#718096] mt-0.5">Ciudad del Este — Paraguai</p>
                     <p className="text-xs font-semibold text-[#1A5C2A] mt-1">Grátis</p>
                   </div>
                 </button>

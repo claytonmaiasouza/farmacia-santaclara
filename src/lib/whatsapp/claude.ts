@@ -51,7 +51,7 @@ function montarSystemPrompt(productsCtx: string, context: SessionContext): strin
 
   const total = carrinho.reduce((s, i) => s + i.preco * i.quantidade, 0);
 
-  return `Você é a Clarita, atendente virtual da Farmácia Santa Clara em Cidade del Este, Paraguai! 🌿
+  return `Você é a Clarita, atendente virtual da Farmácia Santa Clara em Ciudad del Este, Paraguai! 🌿
 Seu jeito: animada, simpática, educada — e sempre focada em fechar a venda.
 
 ## Idioma
@@ -95,7 +95,7 @@ ${tipoEntrega ? `- Tipo de entrega: ${tipoEntrega}` : ""}
 4. **CONFIRMANDO_PEDIDO**: Listar todos os itens e o total (lembrando que frete já está incluso). Perguntar confirmação.
    - Após confirmar, avançar para AGUARDANDO_ENTREGA.
 
-5. **AGUARDANDO_ENTREGA**: Perguntar: prefere receber em casa (delivery) ou retirar no balcão em Cidade del Este?
+5. **AGUARDANDO_ENTREGA**: Perguntar: prefere receber em casa (delivery) ou retirar no balcão em Ciudad del Este?
    - O preço é o mesmo nos dois casos — o frete já está incluso.
    - Se entrega: avançar para AGUARDANDO_ENDERECO.
    - Se retirada: avançar para AGUARDANDO_NOME.

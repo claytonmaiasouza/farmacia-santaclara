@@ -31,7 +31,7 @@ export async function GET() {
 
     // Cabeçalho
     doc.fontSize(20).fillColor("#16a34a").text("Farmácia Santa Clara", { align: "center" });
-    doc.fontSize(11).fillColor("#555").text("Catálogo de Produtos — Cidade del Este, Paraguai", { align: "center" });
+    doc.fontSize(11).fillColor("#555").text("Catálogo de Produtos — Ciudad del Este, Paraguai", { align: "center" });
     doc.moveDown(0.5);
     doc.fontSize(9).fillColor("#888").text(`Atualizado em ${new Date().toLocaleDateString("pt-BR")}`, { align: "center" });
     doc.moveDown(1);

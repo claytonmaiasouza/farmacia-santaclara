@@ -73,7 +73,7 @@ async function saveOrder(
             number: "",
             complement: "",
             neighborhood: "",
-            city: "Cidade del Este",
+            city: "Ciudad del Este",
             state: "PY",
             zip_code: "",
             phone,

@@ -147,7 +147,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
           <span className="hidden md:flex items-center gap-1.5">
             <MapPin size={13} />
-            Cidade del Este — Paraguay
+            Ciudad del Este — Paraguay
           </span>
           <ExchangeRates />
           <div className="flex items-center gap-4">

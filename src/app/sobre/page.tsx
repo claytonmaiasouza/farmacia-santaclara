@@ -6,7 +6,7 @@ export default function SobrePage() {
 
       <div className="prose prose-gray max-w-none space-y-6 text-[#4a5568] leading-relaxed">
         <p>
-          A <strong className="text-[#1a202c]">Farmácia Santa Clara</strong> nasceu com uma missão clara: oferecer produtos farmacêuticos de alta qualidade com atendimento humano, ágil e especializado. Estamos localizados em <strong className="text-[#1a202c]">Cidade del Este, Paraguay</strong>, uma das principais cidades para aquisição de medicamentos e insumos de saúde da América do Sul.
+          A <strong className="text-[#1a202c]">Farmácia Santa Clara</strong> nasceu com uma missão clara: oferecer produtos farmacêuticos de alta qualidade com atendimento humano, ágil e especializado. Estamos localizados em <strong className="text-[#1a202c]">Ciudad del Este, Paraguay</strong>, uma das principais cidades para aquisição de medicamentos e insumos de saúde da América do Sul.
         </p>
 
         <p>

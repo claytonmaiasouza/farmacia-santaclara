@@ -44,7 +44,7 @@ export default function ContatoPage() {
           </div>
           <div>
             <p className="font-bold text-[#1a202c] mb-0.5">Endereço</p>
-            <p className="text-sm text-[#4a5568]">Rua Cidade Leste<br />Cidade del Este — Alto Paraná<br />Paraguay</p>
+            <p className="text-sm text-[#4a5568]">Rua Cidade Leste<br />Ciudad del Este — Alto Paraná<br />Paraguay</p>
           </div>
         </div>
 

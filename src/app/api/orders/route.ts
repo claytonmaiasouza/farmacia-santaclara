@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
           'pending', ${subtotal}, ${shipping ?? 0}, ${discount ?? 0}, ${total},
           ${payment}, ${delivery},
           ${shippingAddress ? tx.json(shippingAddress) : null},
-          ${delivery === "pickup" ? "Retirada no balcão — Cidade del Este" : null},
+          ${delivery === "pickup" ? "Retirada no balcão — Ciudad del Este" : null},
           ${form.email ?? null},
           ${coupon_code ?? null},
           ${coupon_id ?? null},
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (form.email) {
       const paymentMethods = await sql`SELECT type, label, key_value, holder, bank, agency, account FROM payment_methods WHERE active = true ORDER BY id LIMIT 5`;
       const deliveryLabel = delivery === "pickup"
-        ? "Retirada no balcão — Cidade del Este"
+        ? "Retirada no balcão — Ciudad del Este"
         : `Entrega em ${[form.street, form.number, form.complement].filter(Boolean).join(", ")} — ${form.city}`;
 
       sendOrderConfirmationEmail({

@@ -43,7 +43,7 @@ export default function ExportButton() {
       doc.setTextColor(113, 128, 150);
       doc.setFontSize(8);
       const categories = [...new Set(data.map((p) => p.category))];
-      doc.text(`${data.length} produtos  |  ${categories.length} categorias  |  Cidade del Este, Paraguai`, 32, 68);
+      doc.text(`${data.length} produtos  |  ${categories.length} categorias  |  Ciudad del Este, Paraguai`, 32, 68);
 
       // Group by category
       const groups = new Map<string, ProductData[]>();

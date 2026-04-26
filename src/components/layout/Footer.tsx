@@ -91,7 +91,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin size={16} className="text-[#6DC040] mt-0.5 flex-shrink-0" />
-                <span>Calle Boquerón, Sala 31<br />Cidade del Este — Alto Paraná<br />Paraguay</span>
+                <span>Calle Boquerón, Sala 31<br />Ciudad del Este — Alto Paraná<br />Paraguay</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail size={16} className="text-[#6DC040] flex-shrink-0" />

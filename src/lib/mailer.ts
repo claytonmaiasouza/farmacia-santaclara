@@ -147,7 +147,7 @@ function buildEmailHtml(p: SendOrderEmailParams): string {
 
     <!-- Footer -->
     <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center">
-      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Cidade del Este, Paraguay · santaclarafarma.com.py</p>
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Ciudad del Este, Paraguay · santaclarafarma.com.py</p>
       <p style="margin:4px 0 0;font-size:11px;color:#9ca3af">🔒 Comunicação segura e criptografada</p>
     </div>
   </div>
@@ -196,7 +196,7 @@ export async function sendVerificationEmail(params: { to: string; customerName: 
       <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">Este link expira em 24 horas. Se você não criou uma conta, ignore este e-mail.</p>
     </div>
     <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center">
-      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Cidade del Este, Paraguay</p>
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Ciudad del Este, Paraguay</p>
     </div>
   </div>
 </body>
@@ -265,7 +265,7 @@ export async function sendWelcomeEmail(params: { to: string; customerName: strin
     </div>
 
     <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 32px;text-align:center">
-      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Cidade del Este, Paraguay</p>
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Ciudad del Este, Paraguay</p>
       <p style="margin:4px 0 0;font-size:11px;color:#9ca3af">🔒 Comunicação segura e criptografada</p>
     </div>
   </div>
@@ -304,7 +304,7 @@ function baseHtml(content: string): string {
     </div>
     <div style="padding:32px">${content}</div>
     <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 32px;text-align:center">
-      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Cidade del Este, Paraguay</p>
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · Ciudad del Este, Paraguay</p>
     </div>
   </div>
 </body>

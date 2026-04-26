@@ -20,7 +20,7 @@ const banners = [
     id: 2,
     title: "Botox & Toxinas",
     subtitle: "Estética Avançada",
-    description: "Nabota, Botulax, Elitox e muito mais. Produtos originais direto de Cidade del Este.",
+    description: "Nabota, Botulax, Elitox e muito mais. Produtos originais direto de Ciudad del Este.",
     cta: "Ver produtos",
     href: "/categoria/botox",
     image: "https://images.pexels.com/photos/3997989/pexels-photo-3997989.jpeg?auto=compress&cs=tinysrgb&w=1600",
