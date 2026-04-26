@@ -110,6 +110,8 @@ function OrderCard({ order, onStatusChange, onViewProof }: { order: Order; onSta
             {new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
           </p>
           {order.customer_name && <p className="text-xs font-medium text-[#1a202c] mt-0.5">{order.customer_name}</p>}
+          {order.customer_email && <p className="text-[10px] text-[#718096] truncate">{order.customer_email}</p>}
+          {order.customer_phone && <p className="text-[10px] text-[#718096]">{order.customer_phone}</p>}
         </div>
         <div className="flex gap-1 flex-wrap justify-end">
           {order.payment_method === "whatsapp" && (

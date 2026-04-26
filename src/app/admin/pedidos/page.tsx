@@ -12,6 +12,8 @@ export default async function AdminOrdersPage() {
   const orders = await sql<OrderRow[]>`
     SELECT
       o.*,
+      o.shipping_address->>'name'  AS customer_name,
+      o.shipping_address->>'phone' AS customer_phone,
       COALESCE(
         json_agg(oi.* ORDER BY oi.id) FILTER (WHERE oi.id IS NOT NULL),
         '[]'

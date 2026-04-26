@@ -35,7 +35,7 @@ function SuccessScreen({ orderId, total, discount }: { orderId: string; total: n
   const code = orderId.slice(0, 8).toUpperCase();
 
   useEffect(() => {
-    fetch("/api/admin/payment-methods")
+    fetch("/api/payment-methods")
       .then((r) => r.json())
       .then((methods) => {
         const pix = methods.find((m: { type: string; active: boolean; key_value: string }) => m.type === "pix" && m.active);
