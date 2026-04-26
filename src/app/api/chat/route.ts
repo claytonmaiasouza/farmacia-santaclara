@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { getSession, addMessage, clearSession } from "@/lib/whatsapp/session";
-import { generateReply, SessionContext, CarrinhoItem, PedidoResumo } from "@/lib/whatsapp/claude";
+import { generateSiteReply, SiteSiteSessionContext, CarrinhoItem, PedidoResumo } from "@/lib/site/claude";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +12,12 @@ async function ensureContextColumn() {
   await sql`ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS context JSONB DEFAULT '{}'::jsonb`;
 }
 
-async function getSiteContext(sessionId: string): Promise<SessionContext> {
+async function getSiteContext(sessionId: string): Promise<SiteSessionContext> {
   const rows = await sql`
     SELECT context FROM chat_sessions
     WHERE session_id = ${sessionId} AND channel = 'site' LIMIT 1
   `;
-  const ctx = rows[0]?.context as SessionContext | undefined;
+  const ctx = rows[0]?.context as SiteSessionContext | undefined;
   return {
     estado: ctx?.estado || "INICIO",
     carrinho: (ctx?.carrinho as CarrinhoItem[]) || [],
@@ -30,7 +30,7 @@ async function getSiteContext(sessionId: string): Promise<SessionContext> {
   };
 }
 
-async function saveSiteContext(sessionId: string, context: SessionContext) {
+async function saveSiteContext(sessionId: string, context: SiteSessionContext) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await sql`
     UPDATE chat_sessions
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
       context.pedidosCliente = await getOrdersByUser(userId);
     }
 
-    const result = await generateReply(history, message, context);
+    const result = await generateSiteReply(history, message, context);
 
     // Merge defensivo: preserva itens do carrinho se IA retornou menos sem o cliente pedir
     let carrinhoFinal = result.carrinhoAtualizado;
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     await addMessage(sessionId, { role: "user", content: message }, "site");
     await addMessage(sessionId, { role: "assistant", content: result.reply }, "site");
 
-    const novoContext: SessionContext = {
+    const novoContext: SiteSessionContext = {
       estado: result.novoEstado,
       carrinho: carrinhoFinal,
       nomeCliente: result.nomeCliente || context.nomeCliente || "",
