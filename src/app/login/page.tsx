@@ -10,7 +10,7 @@ import { signIn } from "next-auth/react";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") ?? "/conta";
+  const redirect = searchParams.get("callbackUrl") ?? searchParams.get("redirect") ?? "/conta";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,8 +41,7 @@ function LoginForm() {
       return;
     }
 
-    router.push(redirect);
-    router.refresh();
+    window.location.href = redirect;
   }
 
   return (
