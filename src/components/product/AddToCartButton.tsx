@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ShoppingCart, Check, Minus, Plus } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
@@ -18,6 +19,7 @@ interface AddToCartButtonProps {
 
 export default function AddToCartButton({ product }: AddToCartButtonProps) {
   const { addItem } = useCart();
+  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -32,7 +34,10 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
       quantity,
     });
     setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    setTimeout(() => {
+      setAdded(false);
+      router.back();
+    }, 2000);
   }
 
   return (
