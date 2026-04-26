@@ -8,7 +8,11 @@ export async function POST(req: NextRequest) {
   try {
     const { items, form, subtotal, shipping, discount, total, delivery, payment, coupon_code, coupon_id, utm_source, utm_medium, utm_campaign } = await req.json();
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id ?? null;
+    let userId: string | null = null;
+    if (session?.user?.id) {
+      const [u] = await sql`SELECT id FROM users WHERE id = ${session.user.id} LIMIT 1`;
+      userId = u?.id ?? null;
+    }
 
     if (!items?.length || !form?.name || !payment) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
