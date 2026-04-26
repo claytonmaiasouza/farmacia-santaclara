@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MessageCircle, Store, MapPin, Mail, CheckCircle2, RefreshCw, FileText, X, Tag, Trash2 } from "lucide-react";
 
@@ -228,6 +228,10 @@ export default function KanbanBoard({ initialOrders }: { initialOrders: Order[] 
   const [checkResult, setCheckResult] = useState<string | null>(null);
   const [proofModal, setProofModal] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    setOrders(initialOrders);
+  }, [initialOrders]);
 
   function handleStatusChange(id: string, newStatus: string) {
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: newStatus } : o));
