@@ -3,8 +3,20 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import sql from "@/lib/db";
 import { sendPaymentConfirmedEmail, sendStatusUpdateEmail } from "@/lib/mailer";
 
-const VALID_STATUS = ["pending","proof_received","paid","processing","shipped","delivered","cancelled","refunded"];
 const STATUS_EMAIL_TRIGGER = new Set(["paid","processing","shipped","delivered","cancelled","refunded"]);
+
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  pending:        ["proof_received", "cancelled"],
+  proof_received: ["paid", "cancelled"],
+  paid:           ["processing", "refunded", "cancelled"],
+  processing:     ["shipped", "refunded", "cancelled"],
+  shipped:        ["delivered", "refunded", "cancelled"],
+  delivered:      ["refunded"],
+  cancelled:      ["pending"],
+  refunded:       [],
+};
+
+const VALID_STATUS = Object.keys(ALLOWED_TRANSITIONS);
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
@@ -16,9 +28,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Status inválido" }, { status: 400 });
   }
 
-  // Fetch current status before updating to detect transitions
   const [current] = await sql`SELECT status FROM orders WHERE id = ${id} LIMIT 1`;
   const oldStatus = current?.status as string | undefined;
+
+  if (!oldStatus) return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
+
+  const allowed = ALLOWED_TRANSITIONS[oldStatus] ?? [];
+  if (status !== oldStatus && !allowed.includes(status)) {
+    return NextResponse.json(
+      { error: `Não é possível avançar de "${oldStatus}" para "${status}" diretamente.` },
+      { status: 422 }
+    );
+  }
 
   await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
 

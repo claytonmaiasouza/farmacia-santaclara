@@ -49,6 +49,17 @@ const COLUMNS = [
 
 const ALL_STATUSES = COLUMNS.map((c) => ({ value: c.value, label: c.label }));
 
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  pending:        ["proof_received", "cancelled"],
+  proof_received: ["paid", "cancelled"],
+  paid:           ["processing", "refunded", "cancelled"],
+  processing:     ["shipped", "refunded", "cancelled"],
+  shipped:        ["delivered", "refunded", "cancelled"],
+  delivered:      ["refunded"],
+  cancelled:      ["pending"],
+  refunded:       [],
+};
+
 function ProofModal({ url, onClose }: { url: string; onClose: () => void }) {
   const isPdf = url.toLowerCase().endsWith(".pdf");
   return (
@@ -87,19 +98,32 @@ function ProofModal({ url, onClose }: { url: string; onClose: () => void }) {
 
 function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Order; onStatusChange: (id: string, status: string) => void; onDelete: (id: string) => void; onViewProof: (url: string) => void }) {
   const [loading, setLoading] = useState(false);
+  const [moveError, setMoveError] = useState("");
   const isPickup = order.notes?.includes("Retirada") || (!order.shipping_address && order.payment_method === "whatsapp");
   const addr = order.shipping_address;
   const isProof = order.status === "proof_received";
   const isCancelled = order.status === "cancelled";
 
+  const allowedNext = ALLOWED_TRANSITIONS[order.status] ?? [];
+  const availableStatuses = ALL_STATUSES.filter(
+    (s) => s.value === order.status || allowedNext.includes(s.value)
+  );
+
   async function handleMove(newStatus: string) {
+    if (newStatus === order.status) return;
     setLoading(true);
-    await fetch(`/api/admin/pedidos/${order.id}`, {
+    setMoveError("");
+    const res = await fetch(`/api/admin/pedidos/${order.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
-    onStatusChange(order.id, newStatus);
+    if (res.ok) {
+      onStatusChange(order.id, newStatus);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setMoveError(data.error ?? "Transição não permitida.");
+    }
     setLoading(false);
   }
 
@@ -212,12 +236,15 @@ function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Or
             disabled={loading}
             className="text-[10px] border border-[#e2e8f0] rounded-lg px-1.5 py-1 bg-white focus:outline-none focus:border-[#2B7DD4] cursor-pointer disabled:opacity-60 max-w-[110px]"
           >
-            {ALL_STATUSES.map((s) => (
+            {availableStatuses.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
         </div>
       </div>
+      {moveError && (
+        <p className="text-[10px] text-red-500 mt-1">{moveError}</p>
+      )}
     </div>
   );
 }
