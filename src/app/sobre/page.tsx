@@ -35,7 +35,7 @@ export default function SobrePage() {
 
         <h2 className="text-xl font-bold text-[#1a202c] mt-8 mb-3">Por que comprar conosco?</h2>
         <p>
-          Atendemos clientes de todo o Brasil com discrição, segurança e pontualidade. Nossos preços já incluem o frete, sem surpresas no final. Cada pedido é embalado com cuidado para chegar em perfeitas condições.
+          Atendemos a todos os clientes com honestidade, discrição, segurança e pontualidade. Nossos preços já incluem o frete, sem surpresas no final. Cada pedido é embalado com cuidado para chegar em perfeitas condições.
         </p>
       </div>
     </main>
