@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import sql from "@/lib/db";
 import { sendOrderConfirmationEmail } from "@/lib/mailer";
 
 export async function POST(req: NextRequest) {
   try {
     const { items, form, subtotal, shipping, discount, total, delivery, payment, coupon_code, coupon_id, utm_source, utm_medium, utm_campaign } = await req.json();
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id ?? null;
 
     if (!items?.length || !form?.name || !payment) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
@@ -26,7 +30,7 @@ export async function POST(req: NextRequest) {
           status, subtotal, shipping, discount, total,
           payment_method, delivery_type, shipping_address, notes,
           customer_email, coupon_code, coupon_id,
-          utm_source, utm_medium, utm_campaign
+          utm_source, utm_medium, utm_campaign, user_id
         ) VALUES (
           'pending', ${subtotal}, ${shipping ?? 0}, ${discount ?? 0}, ${total},
           ${payment}, ${delivery},
@@ -37,7 +41,8 @@ export async function POST(req: NextRequest) {
           ${coupon_id ?? null},
           ${utm_source ?? null},
           ${utm_medium ?? null},
-          ${utm_campaign ?? null}
+          ${utm_campaign ?? null},
+          ${userId}
         )
         RETURNING id
       `;

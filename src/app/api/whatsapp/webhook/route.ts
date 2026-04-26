@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { getSession, addMessage, clearSession } from "@/lib/whatsapp/session";
-import { generateReply, SessionContext, CarrinhoItem } from "@/lib/whatsapp/claude";
+import { generateReply, SessionContext, CarrinhoItem, PedidoResumo } from "@/lib/whatsapp/claude";
 import { sendMessage, sendCatalog } from "@/lib/whatsapp/evolution";
 
 const HUMAN_KEYWORDS = ["humano", "atendente", "falar com pessoa", "quero falar com alguém"];
@@ -33,6 +33,25 @@ async function saveContext(phone: string, context: SessionContext) {
     SET context = ${sql.json(context as any)}
     WHERE session_id = ${phone} AND channel = 'whatsapp'
   `;
+}
+
+async function getOrdersByPhone(phone: string): Promise<PedidoResumo[]> {
+  const digits = phone.replace(/\D/g, "").slice(-10);
+  const rows = await sql`
+    SELECT
+      o.id, o.status, o.total, o.created_at,
+      COALESCE(
+        json_agg(json_build_object('name', oi.product_name, 'quantity', oi.quantity))
+        FILTER (WHERE oi.id IS NOT NULL), '[]'
+      ) AS items
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id = o.id
+    WHERE o.shipping_address->>'phone' LIKE ${'%' + digits}
+    GROUP BY o.id
+    ORDER BY o.created_at DESC
+    LIMIT 5
+  `;
+  return rows as PedidoResumo[];
 }
 
 async function saveOrder(
@@ -163,7 +182,8 @@ export async function POST(req: NextRequest) {
     const history = await getSession(phone);
     console.log(`[Webhook] histórico: ${history.length} msgs`);
     const context = await getSessionContext(phone);
-    console.log(`[Webhook] contexto estado: ${context.estado}`);
+    context.pedidosCliente = await getOrdersByPhone(phone);
+    console.log(`[Webhook] contexto estado: ${context.estado} | pedidos: ${context.pedidosCliente.length}`);
 
     const cleanHistory = history.filter(
       (m) => !m.content?.includes("Novo Pedido — Farmácia Santa Clara") &&

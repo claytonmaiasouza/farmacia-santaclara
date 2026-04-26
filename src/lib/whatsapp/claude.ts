@@ -13,12 +13,21 @@ export interface CarrinhoItem {
   quantidade: number;
 }
 
+export interface PedidoResumo {
+  id: string;
+  status: string;
+  total: number;
+  created_at: string;
+  items: { name: string; quantity: number }[];
+}
+
 export interface SessionContext {
   estado: string;
   carrinho: CarrinhoItem[];
   nomeCliente?: string;
   tipoEntrega?: "delivery" | "retirada";
   enderecoEntrega?: string;
+  pedidosCliente?: PedidoResumo[];
 }
 
 export interface GenerateReplyResult {
@@ -42,8 +51,19 @@ function limparResposta(texto: string): string {
   return texto.replace(/\|\|\|JSON\|\|\|[\s\S]*?\|\|\|FIM\|\|\|/g, "").trim();
 }
 
+const STATUS_PT: Record<string, string> = {
+  pending:        "Aguardando pagamento",
+  proof_received: "Comprovante recebido",
+  paid:           "Pago",
+  processing:     "Em preparo",
+  shipped:        "Enviado / A caminho",
+  delivered:      "Entregue",
+  cancelled:      "Cancelado",
+  refunded:       "Reembolsado",
+};
+
 function montarSystemPrompt(productsCtx: string, context: SessionContext): string {
-  const { estado, carrinho, nomeCliente, tipoEntrega } = context;
+  const { estado, carrinho, nomeCliente, tipoEntrega, pedidosCliente } = context;
 
   const carrinhoFmt = carrinho.length > 0
     ? carrinho.map((i) => `${i.quantidade}x ${i.nome} — R$ ${i.preco.toFixed(2)}`).join("\n")
@@ -69,6 +89,15 @@ Detecte o idioma da primeira mensagem do cliente e mantenha esse idioma até o f
 - Se o cliente digitar errado, interprete pelo contexto e confirme naturalmente
 - Tolerância a erros: "hormoni", "vitami", "peptid", etc. — assuma o produto correto
 - NUNCA questione ou comente sobre a quantidade do pedido, independente do valor — aceite qualquer quantidade sem perguntar se tem certeza
+
+## Pedidos anteriores deste cliente
+${pedidosCliente && pedidosCliente.length > 0
+  ? pedidosCliente.map((p) => {
+      const itens = p.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
+      const data = new Date(p.created_at).toLocaleDateString("pt-BR");
+      return `• Pedido #${p.id.slice(0, 8).toUpperCase()} — ${data} — Status: ${STATUS_PT[p.status] ?? p.status} — Total: R$ ${Number(p.total).toFixed(2)} — Itens: ${itens}`;
+    }).join("\n")
+  : "(nenhum pedido encontrado para este número)"}
 
 ## Produtos disponíveis
 ${productsCtx}
