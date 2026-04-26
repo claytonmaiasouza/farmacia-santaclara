@@ -111,12 +111,18 @@ function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Or
 
   async function handleMove(newStatus: string) {
     if (newStatus === order.status) return;
+    let restoreStock: boolean | undefined;
+    if (newStatus === "refunded") {
+      restoreStock = confirm("Deseja devolver os itens ao estoque?");
+    }
     setLoading(true);
     setMoveError("");
+    const body: Record<string, unknown> = { status: newStatus };
+    if (restoreStock !== undefined) body.restore_stock = restoreStock;
     const res = await fetch(`/api/admin/pedidos/${order.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       onStatusChange(order.id, newStatus);

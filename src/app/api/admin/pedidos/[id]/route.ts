@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try { await requireAdmin(); } catch { return NextResponse.json({ error: "Não autorizado" }, { status: 403 }); }
 
   const { id } = await params;
-  const { status } = await req.json();
+  const { status, restore_stock } = await req.json();
 
   if (!VALID_STATUS.includes(status)) {
     return NextResponse.json({ error: "Status inválido" }, { status: 400 });
@@ -45,6 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const wasCancelled = oldStatus === "cancelled";
   const isCancelled  = status === "cancelled";
+  const isRefunded   = status === "refunded";
 
   if (!wasCancelled && isCancelled) {
     // Active → Cancelled: restore stock
@@ -59,6 +60,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await sql`
       UPDATE products p
       SET stock = GREATEST(0, p.stock - oi.quantity), updated_at = now()
+      FROM order_items oi
+      WHERE oi.order_id = ${id} AND oi.product_id IS NOT NULL AND oi.product_id = p.id
+    `;
+  } else if (isRefunded && restore_stock === true) {
+    await sql`
+      UPDATE products p
+      SET stock = p.stock + oi.quantity, updated_at = now()
       FROM order_items oi
       WHERE oi.order_id = ${id} AND oi.product_id IS NOT NULL AND oi.product_id = p.id
     `;
