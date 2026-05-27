@@ -100,8 +100,12 @@ function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Or
   const [loading, setLoading] = useState(false);
   const [moveError, setMoveError] = useState("");
   const [pendingRefund, setPendingRefund] = useState(false);
+  const [showAddr, setShowAddr] = useState(false);
   const isPickup = order.notes?.includes("Retirada") || (!order.shipping_address && order.payment_method === "whatsapp");
-  const addr = order.shipping_address;
+  const rawAddr = order.shipping_address;
+  const addr = typeof rawAddr === "string"
+    ? (() => { try { return JSON.parse(rawAddr); } catch { return null; } })()
+    : rawAddr;
   const isProof = order.status === "proof_received";
   const isCancelled = order.status === "cancelled";
 
@@ -173,12 +177,22 @@ function OrderCard({ order, onStatusChange, onDelete, onViewProof }: { order: Or
               <Store size={9} /> Retirada
             </span>
           ) : addr ? (
-            <span className="flex items-center gap-0.5 text-[10px] text-[#718096] bg-gray-50 px-1.5 py-0.5 rounded font-medium">
+            <button
+              onClick={() => setShowAddr((v) => !v)}
+              className="flex items-center gap-0.5 text-[10px] text-[#718096] bg-gray-50 hover:bg-gray-100 px-1.5 py-0.5 rounded font-medium transition"
+              title={showAddr ? "Ocultar endereço" : "Ver endereço"}
+            >
               <MapPin size={9} /> Entrega
-            </span>
+            </button>
           ) : null}
         </div>
       </div>
+
+      {showAddr && addr?.street && (
+        <p className="text-[10px] text-[#4a5568] bg-gray-50 rounded px-2 py-1 leading-snug">
+          {addr.street}
+        </p>
+      )}
 
       <div className="flex flex-col gap-0.5">
         {order.order_items.slice(0, 3).map((item) => (

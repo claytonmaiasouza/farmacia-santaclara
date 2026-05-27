@@ -2,10 +2,16 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import sql from "@/lib/db";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, MapPin, Store } from "lucide-react";
 import Link from "next/link";
 import type { Order, OrderItem } from "@/types/database";
 import OrderStatusBadge from "./OrderStatusBadge";
+
+function parseAddr(raw: unknown) {
+  if (!raw) return null;
+  if (typeof raw === "string") { try { return JSON.parse(raw); } catch { return null; } }
+  return raw as Record<string, string>;
+}
 
 
 interface OrderWithItems extends Order {
@@ -73,6 +79,23 @@ export default async function OrdersPage() {
                   </div>
                 ))}
               </div>
+
+              {(() => {
+                const addr = parseAddr(order.shipping_address);
+                const isPickup = order.notes?.includes("Retirada");
+                if (isPickup) return (
+                  <div className="flex items-center gap-1.5 text-xs text-[#1A5C2A] bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-1">
+                    <Store size={13} /> Retirada no balcão — Ciudad del Este
+                  </div>
+                );
+                if (addr?.street) return (
+                  <div className="flex items-start gap-1.5 text-xs text-[#4a5568] bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-3 py-2 mb-1">
+                    <MapPin size={13} className="mt-0.5 flex-shrink-0 text-[#718096]" />
+                    <span>{addr.street}</span>
+                  </div>
+                );
+                return null;
+              })()}
 
               <div className="flex justify-between items-center pt-3 border-t border-[#e2e8f0]">
                 <div className="text-xs text-[#718096]">

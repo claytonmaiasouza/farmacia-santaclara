@@ -37,7 +37,7 @@ const items: Item[] = [
     kind: "review",
     name: "Fernanda C.",
     location: "Rio de Janeiro, BR",
-    product: "Retratutide Alluvi Verde",
+    product: "Retatrutide Alluvi Verde",
     stars: 5,
     text: "Produto chegou em 4 dias, muito bem embalado com gelo seco. Qualidade impecável, já estou no segundo pedido!",
     avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150",
@@ -237,7 +237,7 @@ export default function SocialProof() {
     <section className="mt-14">
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-[#1a202c]">O que nossos clientes dizem</h2>
-        <p className="text-[#718096] text-sm mt-1">Pedidos reais de clientes satisfeitos</p>
+        <p className="text-[#718096] text-sm mt-1">O que dizem nossos clientes</p>
         <div className="flex items-center justify-center gap-2 mt-3">
           <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={16} className="text-amber-400 fill-amber-400" />)}

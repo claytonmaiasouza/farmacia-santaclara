@@ -66,6 +66,7 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4">Institucional</h3>
             <ul className="space-y-2 text-sm">
               {[
+                { label: "Nossos Clientes", href: "/nossos-clientes" },
                 { label: "Sobre nós", href: "/sobre" },
                 { label: "Política de Privacidade", href: "/privacidade" },
                 { label: "Termos de Uso", href: "/termos" },

@@ -50,7 +50,7 @@ function SuggestionList({
             <p className="text-xs text-[#718096] truncate">{s.brand || s.category}</p>
           </div>
           <span className="text-sm font-bold text-[#1A5C2A] flex-shrink-0">
-            $ {s.price.toFixed(2).replace(".", ",")}
+            R$ {s.price.toFixed(2).replace(".", ",")}
           </span>
         </button>
       ))}

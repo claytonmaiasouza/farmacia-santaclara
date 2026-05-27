@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { getSession, addMessage, clearSession } from "@/lib/whatsapp/session";
-import { generateSiteReply, SiteSiteSessionContext, CarrinhoItem, PedidoResumo } from "@/lib/site/claude";
+import { generateSiteReply, SiteSessionContext, CarrinhoItem, PedidoResumo } from "@/lib/site/claude";
+import { sendNewOrderAdminEmail } from "@/lib/mailer";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ async function getSiteContext(sessionId: string): Promise<SiteSessionContext> {
     estado: ctx?.estado || "INICIO",
     carrinho: (ctx?.carrinho as CarrinhoItem[]) || [],
     nomeCliente: ctx?.nomeCliente || "",
+    emailCliente: ctx?.emailCliente || "",
     tipoEntrega: ctx?.tipoEntrega,
     enderecoEntrega: ctx?.enderecoEntrega || "",
     clienteLogado: ctx?.clienteLogado,
@@ -65,7 +67,7 @@ async function saveOrder(
   enderecoEntrega: string,
   userId?: string | null,
   customerEmail?: string | null,
-) {
+): Promise<string | null> {
   try {
     const resolvedItems = await Promise.all(
       carrinho.map(async (item) => {
@@ -101,7 +103,7 @@ async function saveOrder(
       ) VALUES (
         'pending'::order_status, ${subtotal}, 0, 0, ${total},
         'site_chat',
-        ${shippingAddress ? JSON.stringify(shippingAddress) : null},
+        ${shippingAddress ? sql.json(shippingAddress as never) : null},
         ${tipoEntrega === "retirada" ? "Retirada no balcão — Ciudad del Este" : null},
         ${nomeCliente || "Cliente Web"},
         ${customerEmail ?? null},
@@ -126,8 +128,10 @@ async function saveOrder(
     }
 
     console.log(`[Chat] Pedido salvo: ${saved?.id} — ${nomeCliente}`);
+    return saved?.id ?? null;
   } catch (err) {
     console.error("[Chat] Erro ao salvar pedido:", err);
+    return null;
   }
 }
 
@@ -179,6 +183,7 @@ export async function POST(req: NextRequest) {
       estado: result.novoEstado,
       carrinho: carrinhoFinal,
       nomeCliente: result.nomeCliente || context.nomeCliente || "",
+      emailCliente: result.emailCliente || context.emailCliente || "",
       tipoEntrega: result.tipoEntrega,
       enderecoEntrega: result.enderecoEntrega || context.enderecoEntrega || "",
       clienteLogado: context.clienteLogado,
@@ -188,15 +193,23 @@ export async function POST(req: NextRequest) {
     await saveSiteContext(sessionId, novoContext);
 
     if (result.pedidoPronto && carrinhoFinal.length > 0) {
-      await saveOrder(
-        sessionId,
-        result.nomeCliente || context.nomeCliente || userName || "Cliente Web",
-        carrinhoFinal,
-        result.tipoEntrega,
-        result.enderecoEntrega || context.enderecoEntrega || "",
-        userId ?? null,
-        userEmail ?? context.clienteEmail ?? null,
-      );
+      const emailFinal = result.emailCliente || context.emailCliente || userEmail || context.clienteEmail || null;
+      const nomeF = result.nomeCliente || context.nomeCliente || userName || "Cliente Web";
+      const tipoF = result.tipoEntrega;
+      const enderecoF = result.enderecoEntrega || context.enderecoEntrega || "";
+      const orderId = await saveOrder(sessionId, nomeF, carrinhoFinal, tipoF, enderecoF, userId ?? null, emailFinal);
+      if (orderId) {
+        sendNewOrderAdminEmail({
+          orderId,
+          channel: "site",
+          customerName: nomeF,
+          customerContact: emailFinal || sessionId,
+          items: carrinhoFinal.map((i) => ({ name: i.nome, quantity: i.quantidade, price: i.preco })),
+          total: carrinhoFinal.reduce((s, i) => s + i.preco * i.quantidade, 0),
+          tipoEntrega: tipoF,
+          enderecoEntrega: enderecoF,
+        }).catch((err) => console.error("[Chat] Admin email error:", err));
+      }
       await clearSession(sessionId);
     }
 

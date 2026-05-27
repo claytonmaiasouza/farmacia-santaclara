@@ -15,6 +15,13 @@ export async function sendMessage(to: string, text: string) {
   await post(`/message/sendText/${INSTANCE}`, { number: to, text });
 }
 
+export async function sendContact(to: string, name: string, phone: string) {
+  await post(`/message/sendContact/${INSTANCE}`, {
+    number: to,
+    contact: [{ fullName: name, wuid: phone.replace(/\D/g, ""), phoneNumber: phone }],
+  });
+}
+
 export async function sendCatalog(to: string) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://santaclarafarma.com.py";
   await post(`/message/sendMedia/${INSTANCE}`, {

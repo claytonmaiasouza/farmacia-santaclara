@@ -9,14 +9,25 @@ export async function GET() {
 
   const rows = await sql`
     SELECT
-      u.id, u.email, u.full_name, u.phone, u.cpf, u.birth_date,
-      u.created_at,
-      COUNT(o.id)::int AS total_orders
+      u.id, u.email, u.full_name AS name, u.phone, u.created_at,
+      COUNT(o.id)::int AS total_orders,
+      'site' AS source
     FROM users u
     LEFT JOIN orders o ON o.user_id = u.id
     WHERE u.is_admin = FALSE
     GROUP BY u.id
-    ORDER BY u.created_at DESC
+
+    UNION ALL
+
+    SELECT
+      wc.id, wc.email, wc.name, wc.phone, wc.created_at,
+      COUNT(o.id)::int AS total_orders,
+      'whatsapp' AS source
+    FROM whatsapp_contacts wc
+    LEFT JOIN orders o ON o.customer_phone = wc.phone
+    GROUP BY wc.id
+
+    ORDER BY created_at DESC
   `;
 
   return NextResponse.json(rows);

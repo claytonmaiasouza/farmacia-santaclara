@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { getSession, addMessage, clearSession } from "@/lib/whatsapp/session";
 import { generateReply, SessionContext, CarrinhoItem, PedidoResumo } from "@/lib/whatsapp/claude";
-import { sendMessage, sendCatalog } from "@/lib/whatsapp/evolution";
+import { sendMessage, sendCatalog, sendContact } from "@/lib/whatsapp/evolution";
+import { getSetting } from "@/lib/settings";
+import { sendNewOrderAdminEmail } from "@/lib/mailer";
 
 const HUMAN_KEYWORDS = ["humano", "atendente", "falar com pessoa", "quero falar com alguém"];
 const CLEAR_KEYWORDS = ["reiniciar", "recomeçar", "nova conversa"];
 
 async function ensureContextColumn() {
   await sql`ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS context JSONB DEFAULT '{}'::jsonb`;
+  await sql`ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS last_user_msg_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS follow_up_sent BOOLEAN DEFAULT FALSE`;
 }
 
 async function getSessionContext(phone: string): Promise<SessionContext> {
@@ -21,6 +25,7 @@ async function getSessionContext(phone: string): Promise<SessionContext> {
     estado: ctx?.estado || "INICIO",
     carrinho: ctx?.carrinho || [],
     nomeCliente: ctx?.nomeCliente || "",
+    emailCliente: ctx?.emailCliente || "",
     tipoEntrega: ctx?.tipoEntrega,
     enderecoEntrega: ctx?.enderecoEntrega || "",
   };
@@ -54,13 +59,29 @@ async function getOrdersByPhone(phone: string): Promise<PedidoResumo[]> {
   return rows as PedidoResumo[];
 }
 
+async function upsertContact(phone: string, name: string, email: string) {
+  try {
+    await sql`
+      INSERT INTO whatsapp_contacts (phone, name, email)
+      VALUES (${phone}, ${name || null}, ${email || null})
+      ON CONFLICT (phone) DO UPDATE
+        SET name = COALESCE(EXCLUDED.name, whatsapp_contacts.name),
+            email = COALESCE(EXCLUDED.email, whatsapp_contacts.email),
+            updated_at = now()
+    `;
+  } catch (err) {
+    console.error("[Webhook] Erro ao salvar contato:", err);
+  }
+}
+
 async function saveOrder(
   phone: string,
   nomeCliente: string,
+  emailCliente: string,
   carrinho: CarrinhoItem[],
   tipoEntrega: "delivery" | "retirada",
   enderecoEntrega: string
-) {
+): Promise<string | null> {
   try {
     const resolvedItems = await Promise.all(
       carrinho.map(async (item) => {
@@ -100,18 +121,29 @@ async function saveOrder(
           }
         : null;
 
+    // Vincula ao user_id se o email já estiver cadastrado
+    let userId: string | null = null;
+    if (emailCliente) {
+      const userRow = await sql`SELECT id FROM users WHERE email = ${emailCliente} LIMIT 1`;
+      userId = userRow[0]?.id ?? null;
+    }
+
+    const notesText = tipoEntrega === "retirada"
+      ? "Retirada no balcão — Ciudad del Este"
+      : `Pedido via WhatsApp — ${phone}`;
+
     const [saved] = await sql`
       INSERT INTO orders (
         status, subtotal, shipping, discount, total,
         payment_method, shipping_address, notes,
-        customer_name, customer_phone
+        customer_name, customer_email, customer_phone, user_id
       )
       VALUES (
         'pending', ${subtotal}, ${shipping}, 0, ${total},
         'whatsapp',
-        ${shippingAddress ? JSON.stringify(shippingAddress) : null},
-        ${`Pedido via WhatsApp — ${phone}`},
-        ${nomeCliente || phone}, ${phone}
+        ${shippingAddress ? sql.json(shippingAddress as never) : null},
+        ${notesText},
+        ${nomeCliente || phone}, ${emailCliente || null}, ${phone}, ${userId}
       )
       RETURNING id
     `;
@@ -133,8 +165,10 @@ async function saveOrder(
     }
 
     console.log(`[Webhook] Pedido salvo: ${saved?.id} — ${nomeCliente}`);
+    return saved?.id ?? null;
   } catch (err) {
     console.error("[Webhook] Erro ao salvar pedido:", err);
+    return null;
   }
 }
 
@@ -223,6 +257,10 @@ export async function POST(req: NextRequest) {
 
     // Salva mensagens
     await addMessage(phone, { role: "user", content: text }, "whatsapp");
+    await sql`
+      UPDATE chat_sessions SET last_user_msg_at = now(), follow_up_sent = false
+      WHERE session_id = ${phone} AND channel = 'whatsapp'
+    `;
     await addMessage(phone, { role: "assistant", content: result.reply }, "whatsapp");
 
     // Atualiza contexto da sessão
@@ -230,6 +268,7 @@ export async function POST(req: NextRequest) {
       estado: result.novoEstado,
       carrinho: carrinhoFinal,
       nomeCliente: result.nomeCliente || context.nomeCliente || "",
+      emailCliente: result.emailCliente || context.emailCliente || "",
       tipoEntrega: result.tipoEntrega,
       enderecoEntrega: result.enderecoEntrega || context.enderecoEntrega || "",
     };
@@ -243,16 +282,33 @@ export async function POST(req: NextRequest) {
     // Envia catálogo se solicitado
     if (result.enviarCatalogo) await sendCatalog(phone);
 
+    // Envia contato de atacado se solicitado
+    if (result.enviarContatoAtacado) {
+      const numeroAtacado = (await getSetting<string>("whatsapp_atacado_numero")) ?? "+595985254396";
+      await sendContact(phone, "Atendente Santa Clara", numeroAtacado);
+    }
+
     // Salva pedido quando completo
     if (result.pedidoPronto && carrinhoFinal.length > 0) {
-      await saveOrder(
-        phone,
-        result.nomeCliente || context.nomeCliente || phone,
-        carrinhoFinal,
-        result.tipoEntrega,
-        result.enderecoEntrega || context.enderecoEntrega || ""
-      );
+      const nomeF = result.nomeCliente || context.nomeCliente || phone;
+      const emailF = result.emailCliente || context.emailCliente || "";
+      const tipoF = result.tipoEntrega;
+      const enderecoF = result.enderecoEntrega || context.enderecoEntrega || "";
+      const orderId = await saveOrder(phone, nomeF, emailF, carrinhoFinal, tipoF, enderecoF);
+      await upsertContact(phone, nomeF, emailF);
       await clearSession(phone);
+      if (orderId) {
+        sendNewOrderAdminEmail({
+          orderId,
+          channel: "whatsapp",
+          customerName: nomeF,
+          customerContact: emailF || phone,
+          items: carrinhoFinal.map((i) => ({ name: i.nome, quantity: i.quantidade, price: i.preco })),
+          total: carrinhoFinal.reduce((s, i) => s + i.preco * i.quantidade, 0),
+          tipoEntrega: tipoF,
+          enderecoEntrega: enderecoF,
+        }).catch((err) => console.error("[Webhook] Admin email error:", err));
+      }
       console.log(`[Webhook] Pedido finalizado para ${phone}`);
     }
 

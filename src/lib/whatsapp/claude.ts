@@ -25,6 +25,7 @@ export interface SessionContext {
   estado: string;
   carrinho: CarrinhoItem[];
   nomeCliente?: string;
+  emailCliente?: string;
   tipoEntrega?: "delivery" | "retirada";
   enderecoEntrega?: string;
   pedidosCliente?: PedidoResumo[];
@@ -37,7 +38,9 @@ export interface GenerateReplyResult {
   pedidoPronto: boolean;
   tipoEntrega: "delivery" | "retirada";
   enviarCatalogo: boolean;
+  enviarContatoAtacado: boolean;
   nomeCliente: string;
+  emailCliente: string;
   enderecoEntrega: string;
 }
 
@@ -48,7 +51,11 @@ function extrairDados(texto: string): Record<string, unknown> | null {
 }
 
 function limparResposta(texto: string): string {
-  return texto.replace(/\|\|\|JSON\|\|\|[\s\S]*?\|\|\|FIM\|\|\|/g, "").trim();
+  // Remove bloco completo
+  let result = texto.replace(/\|\|\|JSON\|\|\|[\s\S]*?\|\|\|FIM\|\|\|/g, "");
+  // Remove bloco truncado (sem |||FIM||| por corte de tokens)
+  result = result.replace(/\|\|\|JSON\|\|\|[\s\S]*$/g, "");
+  return result.trim();
 }
 
 const STATUS_PT: Record<string, string> = {
@@ -63,7 +70,7 @@ const STATUS_PT: Record<string, string> = {
 };
 
 function montarSystemPrompt(productsCtx: string, context: SessionContext): string {
-  const { estado, carrinho, nomeCliente, tipoEntrega, pedidosCliente } = context;
+  const { estado, carrinho, nomeCliente, emailCliente, tipoEntrega, pedidosCliente } = context;
 
   const carrinhoFmt = carrinho.length > 0
     ? carrinho.map((i) => `${i.quantidade}x ${i.nome} — R$ ${i.preco.toFixed(2)}`).join("\n")
@@ -90,6 +97,19 @@ Detecte o idioma da primeira mensagem e mantenha até o fim (português ou espan
 - Todos os preços incluem frete — mencione isso se perguntarem
 - Aceite qualquer quantidade sem questionar
 
+## Atacado / preço especial
+Se o cliente perguntar sobre preço de atacado, desconto por quantidade ou preço especial:
+- NUNCA ofereça desconto nem invente valores diferenciados
+- Responda EXATAMENTE: "Para descontos especiais no atacado, entre em contato com nossos atendentes pelo número:" e defina enviarContatoAtacado: true no JSON (o card de contato será enviado automaticamente)
+- Não continue o fluxo de venda após isso — aguarde o atendente assumir
+
+## Foco do atendimento
+Responda APENAS sobre produtos, preços, pedidos e serviços da Farmácia Santa Clara.
+Se o cliente perguntar sobre qualquer outro assunto (política, receitas, notícias, etc.), responda: "Só consigo ajudar com informações sobre a Farmácia Santa Clara e nossos produtos! 😊 Posso te ajudar com algum produto?"
+
+## Emojis proibidos
+- NUNCA use o emoji 🤔 — em nenhuma mensagem
+
 ## Pedidos anteriores deste número
 ${pedidosCliente && pedidosCliente.length > 0
   ? pedidosCliente.map((p) => {
@@ -108,6 +128,7 @@ ${productsCtx}
 ${carrinhoFmt}
 ${carrinho.length > 0 ? `- Total: R$ ${total.toFixed(2)}` : ""}
 ${nomeCliente ? `- Cliente: ${nomeCliente}` : ""}
+${emailCliente ? `- E-mail: ${emailCliente}` : ""}
 ${tipoEntrega ? `- Entrega: ${tipoEntrega}` : ""}
 
 ## Fluxo (siga rigorosamente)
@@ -122,11 +143,13 @@ ${tipoEntrega ? `- Entrega: ${tipoEntrega}` : ""}
 
 5. **AGUARDANDO_ENTREGA** — "Entrega em casa ou retira aqui?" → delivery: AGUARDANDO_ENDERECO / retirada: AGUARDANDO_NOME.
 
-6. **AGUARDANDO_ENDERECO** — Pede endereço → AGUARDANDO_NOME.
+6. **AGUARDANDO_ENDERECO** — Pede endereço completo → AGUARDANDO_NOME.
 
-7. **AGUARDANDO_NOME** — Pede nome completo → FINALIZADO.
+7. **AGUARDANDO_NOME** — Pede nome completo → AGUARDANDO_EMAIL.
 
-8. **FINALIZADO** — "Pedido anotado! 🎉 Nossa equipe entra em contato pelo WhatsApp para combinar o pagamento. Obrigada! 💚" → pedidoPronto: true.
+8. **AGUARDANDO_EMAIL** — "Para finalizar, qual seu e-mail para contato?" → FINALIZADO.
+
+9. **FINALIZADO** — "Pedido anotado! 🎉 Nossa equipe entra em contato pelo WhatsApp para combinar o pagamento. Obrigada! 💚" → pedidoPronto: true.
 
 ## Bloco JSON obrigatório ao final de CADA resposta
 
@@ -137,14 +160,17 @@ ${tipoEntrega ? `- Entrega: ${tipoEntrega}` : ""}
   "pedidoPronto": false,
   "tipoEntrega": "delivery",
   "enviarCatalogo": false,
+  "enviarContatoAtacado": false,
   "nomeCliente": "",
+  "emailCliente": "",
   "enderecoEntrega": ""
 }
 |||FIM|||
 
 - "carrinho": ⚠️ COPIE TODOS os itens existentes + adicione/modifique apenas o novo. NUNCA omita itens já no carrinho.
-- "pedidoPronto": true SOMENTE com nome + entrega definidos + cliente confirmou
-- "enviarCatalogo": true só se cliente pedir explicitamente lista/catálogo`;
+- "pedidoPronto": true SOMENTE com nome + e-mail + entrega definidos + cliente confirmou
+- "enviarCatalogo": true só se cliente pedir explicitamente lista/catálogo
+- "emailCliente": e-mail quando informado, senão vazio`;
 }
 
 export async function generateReply(
@@ -172,7 +198,7 @@ export async function generateReply(
   const response = await client.chat.completions.create({
     model: "anthropic/claude-3-5-haiku",
     messages,
-    max_tokens: 600,
+    max_tokens: 1200,
   });
 
   const textoCompleto = response.choices[0]?.message?.content ?? "";
@@ -186,7 +212,9 @@ export async function generateReply(
     pedidoPronto: dados?.pedidoPronto === true,
     tipoEntrega: ((dados?.tipoEntrega as string) === "retirada" ? "retirada" : "delivery") as "delivery" | "retirada",
     enviarCatalogo: dados?.enviarCatalogo === true,
+    enviarContatoAtacado: dados?.enviarContatoAtacado === true,
     nomeCliente: (dados?.nomeCliente as string) || context.nomeCliente || "",
+    emailCliente: (dados?.emailCliente as string) || context.emailCliente || "",
     enderecoEntrega: (dados?.enderecoEntrega as string) || context.enderecoEntrega || "",
   };
 }

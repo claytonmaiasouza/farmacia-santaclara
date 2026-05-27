@@ -11,9 +11,12 @@ interface OrderRow extends Order {
 export default async function AdminOrdersPage() {
   const orders = await sql<OrderRow[]>`
     SELECT
-      o.*,
-      o.shipping_address->>'name'  AS customer_name,
-      o.shipping_address->>'phone' AS customer_phone,
+      o.id, o.status, o.total, o.subtotal, o.shipping, o.discount,
+      o.payment_method, o.payment_id, o.shipping_address, o.notes,
+      o.user_id, o.created_at, o.updated_at,
+      COALESCE(o.customer_name, o.shipping_address->>'name')  AS customer_name,
+      COALESCE(o.customer_phone, o.shipping_address->>'phone') AS customer_phone,
+      o.customer_email,
       COALESCE(
         json_agg(oi.* ORDER BY oi.id) FILTER (WHERE oi.id IS NOT NULL),
         '[]'

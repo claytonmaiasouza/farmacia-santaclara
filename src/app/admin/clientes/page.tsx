@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Trash2, Mail, Search, Users, CheckSquare, Square, Send, X, Loader2 } from "lucide-react";
+import { Trash2, Mail, Search, Users, CheckSquare, Square, Send, X, Loader2, MessageCircle } from "lucide-react";
 
 interface Cliente {
   id: string;
-  email: string;
-  full_name: string | null;
+  email: string | null;
+  name: string | null;
+  full_name?: string | null;
   phone: string | null;
-  cpf: string | null;
-  birth_date: string | null;
+  cpf?: string | null;
   created_at: string;
   total_orders: number;
+  source: "site" | "whatsapp";
 }
 
 function fmtDate(iso: string) {
@@ -78,7 +79,7 @@ function EmailModal({ recipients, onClose, onSent }: EmailModalProps) {
               <div className="flex flex-wrap gap-1.5">
                 {recipients.map((r) => (
                   <span key={r.id} className="text-[11px] bg-white border border-[#e2e8f0] px-2 py-0.5 rounded-full text-[#4a5568]">
-                    {r.full_name ? `${r.full_name} <${r.email}>` : r.email}
+                    {(r.name ?? r.full_name) ? `${r.name ?? r.full_name} <${r.email}>` : r.email}
                   </span>
                 ))}
               </div>
@@ -144,8 +145,8 @@ export default function ClientesPage() {
   const filtrados = clientes.filter((c) => {
     const q = busca.toLowerCase();
     return (
-      c.email.toLowerCase().includes(q) ||
-      (c.full_name ?? "").toLowerCase().includes(q) ||
+      (c.email ?? "").toLowerCase().includes(q) ||
+      (c.name ?? c.full_name ?? "").toLowerCase().includes(q) ||
       (c.phone ?? "").includes(q)
     );
   });
@@ -166,14 +167,14 @@ export default function ClientesPage() {
     }
   }
 
-  async function handleDelete(id: string, email: string) {
-    if (!confirm(`Remover o cadastro de ${email}?`)) return;
+  async function handleDelete(id: string, label: string) {
+    if (!confirm(`Remover o cadastro de ${label}?`)) return;
     await fetch(`/api/admin/clientes/${id}`, { method: "DELETE" });
     setClientes((prev) => prev.filter((c) => c.id !== id));
     setSelecionados((prev) => { const next = new Set(prev); next.delete(id); return next; });
   }
 
-  const recipientsSelecionados = filtrados.filter((c) => selecionados.has(c.id));
+  const recipientsSelecionados = filtrados.filter((c) => selecionados.has(c.id) && c.email);
   const todosSelec = filtrados.length > 0 && selecionados.size === filtrados.length;
 
   return (
@@ -240,6 +241,7 @@ export default function ClientesPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-[#718096] uppercase tracking-wide">Nome</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-[#718096] uppercase tracking-wide">E-mail</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-[#718096] uppercase tracking-wide">Telefone</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#718096] uppercase tracking-wide">Origem</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-[#718096] uppercase tracking-wide">Cadastro</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-[#718096] uppercase tracking-wide">Pedidos</th>
                   <th className="px-4 py-3"></th>
@@ -259,11 +261,17 @@ export default function ClientesPage() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-[#1a202c]">{c.full_name || "—"}</p>
+                      <p className="text-sm font-medium text-[#1a202c]">{c.name ?? c.full_name ?? "—"}</p>
                       {c.cpf && <p className="text-[11px] text-[#718096]">CPF: {c.cpf}</p>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#4a5568]">{c.email}</td>
+                    <td className="px-4 py-3 text-sm text-[#4a5568]">{c.email || "—"}</td>
                     <td className="px-4 py-3 text-sm text-[#4a5568]">{c.phone || "—"}</td>
+                    <td className="px-4 py-3">
+                      {c.source === "whatsapp"
+                        ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700"><MessageCircle size={10} /> WhatsApp</span>
+                        : <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Site</span>
+                      }
+                    </td>
                     <td className="px-4 py-3 text-sm text-[#718096]">{fmtDate(c.created_at)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.total_orders > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
@@ -280,7 +288,7 @@ export default function ClientesPage() {
                           <Mail size={15} />
                         </button>
                         <button
-                          onClick={() => handleDelete(c.id, c.email)}
+                          onClick={() => handleDelete(c.id, c.email ?? c.name ?? c.id)}
                           className="p-1.5 text-[#718096] hover:text-red-500 rounded-lg hover:bg-red-50 transition"
                           title="Remover cadastro"
                         >

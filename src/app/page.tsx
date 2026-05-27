@@ -3,11 +3,11 @@ export const dynamic = "force-dynamic";
 import HeroBanner from "@/components/home/HeroBanner";
 import CategoryGrid from "@/components/home/CategoryGrid";
 import ProductCarousel from "@/components/home/ProductCarousel";
-import SocialProof from "@/components/home/SocialProof";
 import sql from "@/lib/db";
 import type { Product } from "@/components/ui/ProductCard";
 
 type Row = { id: string; name: string; slug: string; price: number; original_price: number | null; image_url: string; brand_name: string | null };
+type CarouselConfig = { key: string; title: string; subtitle: string | null; badge: string | null };
 
 function mapRow(r: Row): Product {
   return {
@@ -45,11 +45,17 @@ async function getCarouselProducts(flag: "in_promo" | "in_bestseller" | "in_laun
 }
 
 export default async function HomePage() {
-  const [promo, bestsellers, launches] = await Promise.all([
+  const [promo, bestsellers, launches, configRows] = await Promise.all([
     getCarouselProducts("in_promo"),
     getCarouselProducts("in_bestseller"),
     getCarouselProducts("in_launch"),
+    sql`SELECT key, title, subtitle, badge FROM carousel_settings`.catch(() => [] as CarouselConfig[]),
   ]);
+
+  const cfg = Object.fromEntries((configRows as CarouselConfig[]).map((r) => [r.key, r]));
+  const promoCfg    = cfg.promo      ?? { title: "Promoção",      subtitle: null, badge: null };
+  const bestCfg     = cfg.bestseller ?? { title: "Mais Vendidos", subtitle: null, badge: null };
+  const launchCfg   = cfg.launch     ?? { title: "Lançamentos",   subtitle: null, badge: null };
 
   return (
     <div className="pt-6">
@@ -58,9 +64,9 @@ export default async function HomePage() {
 
       {promo.length > 0 && (
         <ProductCarousel
-          title="Promoção de Inauguração"
-          subtitle="Preços especiais para os primeiros clientes"
-          badge="INAUGURAÇÃO"
+          title={promoCfg.title}
+          subtitle={promoCfg.subtitle ?? undefined}
+          badge={promoCfg.badge ?? undefined}
           products={promo}
           viewAllHref="/categoria/peptideos"
         />
@@ -68,8 +74,9 @@ export default async function HomePage() {
 
       {bestsellers.length > 0 && (
         <ProductCarousel
-          title="Mais Vendidos"
-          subtitle="Os favoritos dos nossos clientes"
+          title={bestCfg.title}
+          subtitle={bestCfg.subtitle ?? undefined}
+          badge={bestCfg.badge ?? undefined}
           products={bestsellers}
           viewAllHref="/categoria/peptideos"
         />
@@ -77,15 +84,13 @@ export default async function HomePage() {
 
       {launches.length > 0 && (
         <ProductCarousel
-          title="Lançamentos"
-          subtitle="Novidades chegando à nossa farmácia"
-          badge="NOVO"
+          title={launchCfg.title}
+          subtitle={launchCfg.subtitle ?? undefined}
+          badge={launchCfg.badge ?? undefined}
           products={launches}
           viewAllHref="/categoria/peptideos"
         />
       )}
-
-      <SocialProof />
 
     </div>
   );

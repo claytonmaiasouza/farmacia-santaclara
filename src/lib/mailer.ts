@@ -445,6 +445,87 @@ const STATUS_INFO: Record<string, { emoji: string; title: string; body: string; 
   },
 };
 
+export async function sendNewOrderAdminEmail(params: {
+  orderId: string;
+  channel: "whatsapp" | "site";
+  customerName: string;
+  customerContact: string;
+  items: OrderItem[];
+  total: number;
+  tipoEntrega: string;
+  enderecoEntrega?: string;
+}): Promise<void> {
+  const transporter = createTransport();
+  const code = params.orderId.slice(0, 8).toUpperCase();
+  const canalLabel = params.channel === "whatsapp" ? "📱 WhatsApp" : "🌐 Site";
+  const entregaInfo = params.tipoEntrega === "retirada"
+    ? "Retirada no balcão — Ciudad del Este"
+    : `Entrega: ${params.enderecoEntrega || "endereço não informado"}`;
+
+  const itemsHtml = params.items.map((i) => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#1a202c">${i.name}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#718096;text-align:center">${i.quantity}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#1a202c;text-align:right">R$ ${(i.price * i.quantity).toFixed(2).replace(".", ",")}</td>
+    </tr>`).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+    <div style="background:#1A5C2A;padding:24px 32px;text-align:center">
+      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">🛒 Novo Pedido Recebido</h1>
+      <p style="margin:6px 0 0;color:#a7f3d0;font-size:14px">Farmácia Santa Clara</p>
+    </div>
+    <div style="padding:28px 32px">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <p style="margin:0 0 4px;font-size:12px;color:#4b5563">Pedido</p>
+          <p style="margin:0;font-family:monospace;font-size:20px;font-weight:700;color:#166534">#${code}</p>
+        </div>
+        <div style="text-align:right">
+          <p style="margin:0 0 4px;font-size:12px;color:#4b5563">Canal</p>
+          <p style="margin:0;font-size:14px;font-weight:600;color:#1a202c">${canalLabel}</p>
+        </div>
+      </div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:20px">
+        <p style="margin:0 0 6px;font-size:13px;color:#1a202c"><strong>Cliente:</strong> ${params.customerName}</p>
+        <p style="margin:0 0 6px;font-size:13px;color:#1a202c"><strong>Contato:</strong> ${params.customerContact}</p>
+        <p style="margin:0;font-size:13px;color:#1a202c"><strong>Entrega:</strong> ${entregaInfo}</p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:16px">
+        <thead>
+          <tr style="background:#f8fafc">
+            <th style="padding:10px 12px;font-size:12px;color:#718096;text-align:left">Produto</th>
+            <th style="padding:10px 12px;font-size:12px;color:#718096;text-align:center">Qtd</th>
+            <th style="padding:10px 12px;font-size:12px;color:#718096;text-align:right">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemsHtml}</tbody>
+        <tfoot>
+          <tr style="background:#f8fafc">
+            <td colspan="2" style="padding:10px 12px;font-size:14px;font-weight:700;color:#1a202c">Total</td>
+            <td style="padding:10px 12px;font-size:15px;font-weight:700;color:#1A5C2A;text-align:right">R$ ${params.total.toFixed(2).replace(".", ",")}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#9ca3af">Farmácia Santa Clara · santaclarafarma.com.py</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: `"Farmácia Santa Clara" <${process.env.SMTP_USER ?? "vendas@santaclarafarma.com.py"}>`,
+    to: "pedidos@santaclarafarma.com.py",
+    subject: `🛒 Novo Pedido #${code} — ${params.channel === "whatsapp" ? "WhatsApp" : "Site"} — ${params.customerName}`,
+    html,
+  });
+}
+
 export async function sendStatusUpdateEmail(params: {
   to: string;
   customerName: string;

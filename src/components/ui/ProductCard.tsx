@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingCart, Star } from "lucide-react";
+import { ShoppingCart, Star, ImageOff } from "lucide-react";
+import { useState } from "react";
 
 export interface Product {
   id: string;
@@ -20,6 +23,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const [imgError, setImgError] = useState(false);
   const price = Number(product.price);
   const originalPrice = product.originalPrice ? Number(product.originalPrice) : null;
   const discount = originalPrice
@@ -32,14 +36,19 @@ export default function ProductCard({ product }: ProductCardProps) {
       className="group bg-white rounded-2xl border border-[#e2e8f0] hover:border-[#2B7DD4] hover:shadow-lg transition-all duration-200 flex flex-col overflow-hidden"
     >
       {/* Imagem */}
-      <div className="relative bg-[#f4f6f8] aspect-square flex items-center justify-center p-4">
-        <Image
-          src={product.image}
-          alt={product.name}
-          width={200}
-          height={200}
-          className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-200"
-        />
+      <div className="relative bg-[#f4f6f8] h-[220px] flex items-center justify-center p-5">
+        {product.image && !imgError ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            width={250}
+            height={250}
+            className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-200"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <ImageOff size={48} className="text-[#cbd5e0]" />
+        )}
         {discount && (
           <span className="absolute top-2 left-2 bg-[#e53e3e] text-white text-xs font-bold px-2 py-0.5 rounded-lg">
             -{discount}%
@@ -53,9 +62,9 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Info */}
-      <div className="flex flex-col gap-1 p-3 flex-1">
+      <div className="flex flex-col gap-1.5 p-4 flex-1">
         <span className="text-xs text-[#2B7DD4] font-medium">{product.brand}</span>
-        <h3 className="text-sm font-medium text-[#1a202c] line-clamp-2 leading-snug group-hover:text-[#2B7DD4] transition-colors">
+        <h3 className="text-base font-medium text-[#1a202c] line-clamp-2 leading-snug group-hover:text-[#2B7DD4] transition-colors">
           {product.name}
         </h3>
 
@@ -74,18 +83,15 @@ export default function ProductCard({ product }: ProductCardProps) {
               R$ {originalPrice.toFixed(2).replace(".", ",")}
             </span>
           )}
-          <div className="text-lg font-bold text-[#1A5C2A]">
+          <div className="text-xl font-bold text-[#1A5C2A]">
             R$ {price.toFixed(2).replace(".", ",")}
-          </div>
-          <div className="text-xs text-[#718096]">
-            ou 3x de R$ {(price / 3).toFixed(2).replace(".", ",")} sem juros
           </div>
         </div>
       </div>
 
       {/* Botão */}
-      <div className="px-3 pb-3">
-        <button className="w-full bg-[#2B7DD4] hover:bg-[#1a5fa8] active:bg-[#1a5fa8] text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors">
+      <div className="px-4 pb-4">
+        <button className="w-full bg-[#2B7DD4] hover:bg-[#1a5fa8] active:bg-[#1a5fa8] text-white text-base font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors">
           <ShoppingCart size={16} />
           Adicionar
         </button>

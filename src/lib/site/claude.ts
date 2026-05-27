@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { Message } from "@/lib/whatsapp/session";
 import { getProductsContext } from "@/lib/whatsapp/products";
 import type { CarrinhoItem, PedidoResumo, GenerateReplyResult } from "@/lib/whatsapp/claude";
+import { getSetting } from "@/lib/settings";
 
 export type { CarrinhoItem, PedidoResumo, GenerateReplyResult };
 
@@ -14,6 +15,7 @@ export interface SiteSessionContext {
   estado: string;
   carrinho: CarrinhoItem[];
   nomeCliente?: string;
+  emailCliente?: string;
   tipoEntrega?: "delivery" | "retirada";
   enderecoEntrega?: string;
   pedidosCliente?: PedidoResumo[];
@@ -29,7 +31,9 @@ function extrairDados(texto: string): Record<string, unknown> | null {
 }
 
 function limparResposta(texto: string): string {
-  return texto.replace(/\|\|\|JSON\|\|\|[\s\S]*?\|\|\|FIM\|\|\|/g, "").trim();
+  let result = texto.replace(/\|\|\|JSON\|\|\|[\s\S]*?\|\|\|FIM\|\|\|/g, "");
+  result = result.replace(/\|\|\|JSON\|\|\|[\s\S]*$/g, "");
+  return result.trim();
 }
 
 const STATUS_PT: Record<string, string> = {
@@ -43,8 +47,8 @@ const STATUS_PT: Record<string, string> = {
   refunded:       "Reembolsado",
 };
 
-function montarSystemPrompt(productsCtx: string, context: SiteSessionContext): string {
-  const { estado, carrinho, nomeCliente, tipoEntrega, pedidosCliente, clienteLogado, clienteEmail } = context;
+function montarSystemPrompt(productsCtx: string, context: SiteSessionContext, numeroAtacado: string): string {
+  const { estado, carrinho, nomeCliente, emailCliente, tipoEntrega, pedidosCliente, clienteLogado, clienteEmail } = context;
 
   const carrinhoFmt = carrinho.length > 0
     ? carrinho.map((i) => `${i.quantidade}x ${i.nome} — R$ ${i.preco.toFixed(2)}`).join("\n")
@@ -52,13 +56,15 @@ function montarSystemPrompt(productsCtx: string, context: SiteSessionContext): s
 
   const total = carrinho.reduce((s, i) => s + i.preco * i.quantidade, 0);
 
+  const emailConhecido = clienteLogado ? clienteEmail : emailCliente;
+
   const secaoCliente = clienteLogado
     ? `## Cliente identificado
 - Nome: ${nomeCliente || "não informado"}
 - E-mail: ${clienteEmail || "não informado"}
-- ✅ NÃO pergunte o nome — já identificado. Trate pelo primeiro nome.`
+- ✅ NÃO pergunte o nome nem o e-mail — já identificado. Trate pelo primeiro nome.`
     : `## Cliente não identificado
-- Solicite o nome apenas ao finalizar o pedido.`;
+- Solicite o nome e e-mail apenas ao finalizar o pedido.${emailCliente ? `\n- E-mail já coletado: ${emailCliente}` : ""}`;
 
   const secaoPedidos = pedidosCliente && pedidosCliente.length > 0
     ? pedidosCliente.map((p) => {
@@ -91,6 +97,16 @@ ${secaoPedidos}
 - NUNCA invente preços — use apenas os listados abaixo
 - Use emojis com moderação
 
+## Foco do atendimento
+Responda APENAS sobre produtos, preços, pedidos e serviços da Farmácia Santa Clara.
+Se o cliente perguntar sobre outro assunto (política, receitas, notícias, etc.), responda: "Só consigo ajudar com informações sobre a Farmácia Santa Clara e nossos produtos! 😊 Em que posso te ajudar?"
+
+## Atacado / preço especial
+Se o cliente perguntar sobre preço de atacado, desconto por quantidade ou preço especial:
+- NUNCA ofereça desconto nem invente valores diferenciados
+- Responda EXATAMENTE: "Para pedidos no atacado, vou te encaminhar para um de nossos atendentes! 😊 Entre em contato pelo WhatsApp: ${numeroAtacado}"
+- Não continue o fluxo de venda após isso
+
 ## Produtos disponíveis
 ${productsCtx}
 
@@ -100,6 +116,7 @@ ${productsCtx}
 ${carrinhoFmt}
 ${carrinho.length > 0 ? `- Total: R$ ${total.toFixed(2)} (frete já incluso)` : ""}
 ${nomeCliente ? `- Nome do cliente: ${nomeCliente}` : ""}
+${emailConhecido ? `- E-mail: ${emailConhecido}` : ""}
 ${tipoEntrega ? `- Tipo de entrega: ${tipoEntrega}` : ""}
 
 ## Fluxo de atendimento
@@ -114,13 +131,15 @@ ${tipoEntrega ? `- Tipo de entrega: ${tipoEntrega}` : ""}
 
 5. **AGUARDANDO_ENTREGA** — "Prefere receber em casa ou retirar no balcão em Ciudad del Este?"
    - Delivery → AGUARDANDO_ENDERECO
-   - Retirada → ${clienteLogado ? "FINALIZADO direto (nome já conhecido)" : "AGUARDANDO_NOME"}
+   - Retirada → ${clienteLogado ? "FINALIZADO direto (nome e e-mail já conhecidos)" : "AGUARDANDO_NOME"}
 
 6. **AGUARDANDO_ENDERECO** — Pedir endereço completo → ${clienteLogado ? "FINALIZADO direto" : "AGUARDANDO_NOME"}
 
-7. **AGUARDANDO_NOME** — ${clienteLogado ? "⚠️ PULAR — cliente já identificado. Ir para FINALIZADO." : "Pedir nome completo → FINALIZADO."}
+7. **AGUARDANDO_NOME** — ${clienteLogado ? "⚠️ PULAR — cliente já identificado. Ir para FINALIZADO." : "Pedir nome completo → AGUARDANDO_EMAIL."}
 
-8. **FINALIZADO** — "Pedido anotado! 🎉 Nossa equipe entrará em contato pelo WhatsApp para combinar o pagamento e confirmar a entrega. Obrigada pela preferência! 💚" → pedidoPronto: true.
+8. **AGUARDANDO_EMAIL** — ${clienteLogado ? "⚠️ PULAR — e-mail já conhecido. Ir para FINALIZADO." : '"Para finalizar, qual seu e-mail para contato?" → FINALIZADO.'}
+
+9. **FINALIZADO** — "Pedido anotado! 🎉 Nossa equipe entrará em contato pelo WhatsApp para combinar o pagamento e confirmar a entrega. Obrigada pela preferência! 💚" → pedidoPronto: true.
 
 ## Bloco JSON obrigatório ao final de CADA resposta
 
@@ -132,15 +151,17 @@ ${tipoEntrega ? `- Tipo de entrega: ${tipoEntrega}` : ""}
   "tipoEntrega": "delivery",
   "enviarCatalogo": false,
   "nomeCliente": "",
+  "emailCliente": "",
   "enderecoEntrega": ""
 }
 |||FIM|||
 
-- "estado": INICIO, EXPLORANDO, MONTANDO_PEDIDO, CONFIRMANDO_PEDIDO, AGUARDANDO_ENTREGA, AGUARDANDO_ENDERECO, AGUARDANDO_NOME ou FINALIZADO
+- "estado": INICIO, EXPLORANDO, MONTANDO_PEDIDO, CONFIRMANDO_PEDIDO, AGUARDANDO_ENTREGA, AGUARDANDO_ENDERECO, AGUARDANDO_NOME, AGUARDANDO_EMAIL ou FINALIZADO
 - "carrinho": ⚠️ COPIE TODOS os itens existentes e adicione/modifique apenas o que o cliente pediu agora. NUNCA omita itens já no carrinho.
-- "pedidoPronto": true SOMENTE quando cliente confirmou, tem nome${clienteLogado ? " (já disponível)" : ""} e entrega definida
+- "pedidoPronto": true SOMENTE quando cliente confirmou, tem nome${clienteLogado ? " (já disponível)" : ""}, e-mail${clienteLogado ? " (já disponível)" : ""} e entrega definida
 - "enviarCatalogo": true só se cliente pedir lista/catálogo explicitamente
 - "nomeCliente": ${clienteLogado ? `"${nomeCliente || ""}" — NÃO altere` : "nome quando informado, senão vazio"}
+- "emailCliente": ${clienteLogado ? `"${clienteEmail || ""}" — NÃO altere` : "e-mail quando informado, senão vazio"}
 - "enderecoEntrega": endereço de entrega quando informado, senão vazio`;
 }
 
@@ -149,8 +170,11 @@ export async function generateSiteReply(
   userMessage: string,
   context: SiteSessionContext
 ): Promise<GenerateReplyResult> {
-  const productsCtx = await getProductsContext();
-  const systemPrompt = montarSystemPrompt(productsCtx, context);
+  const [productsCtx, numeroAtacado] = await Promise.all([
+    getProductsContext(),
+    getSetting<string>("whatsapp_atacado_numero"),
+  ]);
+  const systemPrompt = montarSystemPrompt(productsCtx, context, numeroAtacado ?? "+595985254396");
 
   let mensagemEnriquecida = userMessage;
   if (context.carrinho.length > 0) {
@@ -184,6 +208,7 @@ export async function generateSiteReply(
     tipoEntrega: ((dados?.tipoEntrega as string) === "retirada" ? "retirada" : "delivery") as "delivery" | "retirada",
     enviarCatalogo: dados?.enviarCatalogo === true,
     nomeCliente: (dados?.nomeCliente as string) || context.nomeCliente || "",
+    emailCliente: (dados?.emailCliente as string) || context.emailCliente || context.clienteEmail || "",
     enderecoEntrega: (dados?.enderecoEntrega as string) || context.enderecoEntrega || "",
   };
 }

@@ -92,13 +92,13 @@ export default function CartPage() {
               <Tag size={15} />
               Faltam{" "}
               <strong>R$ {(150 - totalPrice).toFixed(2).replace(".", ",")}</strong>{" "}
-              para frete grátis!
+              para frete já incluso!
             </div>
           )}
           {totalPrice >= 150 && (
             <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-3 text-sm text-[#1A5C2A] flex items-center gap-2">
               <Tag size={15} />
-              Você ganhou <strong>frete grátis!</strong>
+              Frete já incluso no preço! 🎉
             </div>
           )}
 

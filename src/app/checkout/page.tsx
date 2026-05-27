@@ -343,7 +343,7 @@ export default function CheckoutPage() {
                   <div>
                     <p className="font-semibold text-sm text-[#1a202c]">Entrega no endereço</p>
                     <p className="text-xs text-[#718096] mt-0.5">Enviamos para todo o Brasil</p>
-                    <p className="text-xs font-semibold text-[#1A5C2A] mt-1">Frete grátis</p>
+                    <p className="text-xs font-semibold text-[#1A5C2A] mt-1">Frete já incluso</p>
                   </div>
                 </button>
                 <button type="button" onClick={() => setDelivery("pickup")}
@@ -393,7 +393,7 @@ export default function CheckoutPage() {
                   <div>
                     <p className="font-bold text-sm text-green-800 font-mono">{coupon.code}</p>
                     <p className="text-xs text-green-700 mt-0.5">
-                      {coupon.discount_type === "tracking" ? "Cupom aplicado (rastreamento)" :
+                      {coupon.discount_type === "tracking" ? "Cupom aplicado (Obrigado pela preferência!)" :
                        coupon.discount_type === "percentage" ? `${coupon.discount_value}% de desconto` :
                        `R$ ${Number(coupon.discount_value).toFixed(2)} de desconto`}
                     </p>
