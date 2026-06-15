@@ -186,9 +186,10 @@ export async function POST(req: NextRequest) {
     if (!msg || msg.key?.fromMe) return NextResponse.json({ ok: true });
 
     const remoteJid: string = msg.key?.remoteJid ?? "";
-    // sendTo: full JID (incluindo @lid) para Evolution API repassar corretamente
+    const pushName: string = msg.pushName ?? "";
+    // sendTo: full JID para envio (resolveJid converte @lid → @s.whatsapp.net)
     const sendTo: string = remoteJid;
-    // phone: número limpo para DB/sessões (strip @s.whatsapp.net, @g.us, @lid)
+    // phone: número limpo para DB/sessões
     const phone: string = remoteJid
       .replace(/@s\.whatsapp\.net$/, "")
       .replace(/@g\.us$/, "")
@@ -205,14 +206,15 @@ export async function POST(req: NextRequest) {
 
     if (CLEAR_KEYWORDS.some((k) => lower.includes(k))) {
       await clearSession(phone);
-      await sendMessage(sendTo, "Conversa reiniciada! Como posso te ajudar? 😊");
+      await sendMessage(sendTo, "Conversa reiniciada! Como posso te ajudar? 😊", pushName);
       return NextResponse.json({ ok: true });
     }
 
     if (HUMAN_KEYWORDS.some((k) => lower.includes(k))) {
       await sendMessage(
         sendTo,
-        "Certo! Vou te transferir para um de nossos atendentes agora. Por favor, aguarde um momento. 🙏"
+        "Certo! Vou te transferir para um de nossos atendentes agora. Por favor, aguarde um momento. 🙏",
+        pushName
       );
       return NextResponse.json({ ok: true });
     }
@@ -283,16 +285,16 @@ export async function POST(req: NextRequest) {
 
     // Envia resposta ao cliente
     console.log(`[Webhook] enviando mensagem para ${sendTo}`);
-    await sendMessage(sendTo, result.reply);
+    await sendMessage(sendTo, result.reply, pushName);
     console.log(`[Webhook] mensagem enviada`);
 
     // Envia catálogo se solicitado
-    if (result.enviarCatalogo) await sendCatalog(sendTo);
+    if (result.enviarCatalogo) await sendCatalog(sendTo, pushName);
 
     // Envia contato de atacado se solicitado
     if (result.enviarContatoAtacado) {
       const numeroAtacado = (await getSetting<string>("whatsapp_atacado_numero")) ?? "+595985254396";
-      await sendContact(sendTo, "Atendente Santa Clara", numeroAtacado);
+      await sendContact(sendTo, "Atendente Santa Clara", numeroAtacado, pushName);
     }
 
     // Salva pedido quando completo
