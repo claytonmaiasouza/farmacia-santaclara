@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import sql from "@/lib/db";
-import { sendOrderConfirmationEmail } from "@/lib/mailer";
+import { sendOrderConfirmationEmail, sendNewOrderAdminEmail } from "@/lib/mailer";
+import { sendMessage } from "@/lib/whatsapp/evolution";
 
 export async function POST(req: NextRequest) {
   try {
@@ -82,26 +83,46 @@ export async function POST(req: NextRequest) {
       return order;
     });
 
-    if (form.email) {
-      const paymentMethods = await sql`SELECT type, label, key_value, holder, bank, agency, account FROM payment_methods WHERE active = true ORDER BY id LIMIT 5`;
-      const deliveryLabel = delivery === "pickup"
-        ? "Retirada no balcão — Ciudad del Este"
-        : `Entrega em ${[form.street, form.number, form.complement].filter(Boolean).join(", ")} — ${form.city}`;
+    const paymentMethods = await sql`SELECT type, label, key_value, holder, bank, agency, account FROM payment_methods WHERE active = true ORDER BY id LIMIT 5`;
+    const deliveryLabel = delivery === "pickup"
+      ? "Retirada no balcão — Ciudad del Este"
+      : `Entrega em ${[form.street, form.number, form.complement].filter(Boolean).join(", ")} — ${form.city}`;
 
+    const orderItems = items.map((i: { name: string; price: number; quantity: number }) => ({
+      name: i.name,
+      quantity: i.quantity,
+      price: Number(i.price),
+    }));
+
+    if (form.email) {
       sendOrderConfirmationEmail({
         to: form.email,
         customerName: form.name,
         orderId: result.id,
-        items: items.map((i: { name: string; price: number; quantity: number }) => ({
-          name: i.name,
-          quantity: i.quantity,
-          price: Number(i.price),
-        })),
+        items: orderItems,
         total,
         delivery: deliveryLabel,
         paymentMethods,
-      }).catch((err) => console.error("[Orders API] email error:", err));
+      }).catch((err) => console.error("[Orders API] email cliente error:", err));
     }
+
+    const code = result.id.slice(0, 8).toUpperCase();
+    const itemsText = orderItems.map((i: { name: string; quantity: number; price: number }) => `• ${i.name} x${i.quantity} — R$ ${(i.price * i.quantity).toFixed(2).replace(".", ",")}`).join("\n");
+    const adminWaText = `🛒 *Novo Pedido #${code}*\n\n👤 *Cliente:* ${form.name}\n📞 *Contato:* ${form.phone ?? form.email ?? "não informado"}\n\n${itemsText}\n\n💰 *Total:* R$ ${total.toFixed(2).replace(".", ",")}\n📦 *Entrega:* ${deliveryLabel}`;
+
+    sendNewOrderAdminEmail({
+      orderId: result.id,
+      channel: "site",
+      customerName: form.name,
+      customerContact: form.phone ?? form.email ?? "não informado",
+      items: orderItems,
+      total,
+      tipoEntrega: delivery === "pickup" ? "retirada" : "entrega",
+      enderecoEntrega: delivery !== "pickup" ? deliveryLabel : undefined,
+    }).catch((err) => console.error("[Orders API] email admin error:", err));
+
+    sendMessage("595992959689", adminWaText)
+      .catch((err) => console.error("[Orders API] whatsapp admin error:", err));
 
     return NextResponse.json({ id: result.id });
   } catch (err) {

@@ -185,11 +185,18 @@ export async function POST(req: NextRequest) {
     const msg = Array.isArray(rawData) ? rawData[0] : rawData;
     if (!msg || msg.key?.fromMe) return NextResponse.json({ ok: true });
 
-    const phone: string =
-      msg.key?.remoteJid?.replace("@s.whatsapp.net", "").replace("@g.us", "") ?? "";
+    const remoteJid: string = msg.key?.remoteJid ?? "";
+    // sendTo: full JID (incluindo @lid) para Evolution API repassar corretamente
+    const sendTo: string = remoteJid;
+    // phone: número limpo para DB/sessões (strip @s.whatsapp.net, @g.us, @lid)
+    const phone: string = remoteJid
+      .replace(/@s\.whatsapp\.net$/, "")
+      .replace(/@g\.us$/, "")
+      .replace(/@lid$/, "");
+
     const text: string =
       msg.message?.conversation ?? msg.message?.extendedTextMessage?.text ?? "";
-    if (!phone || !text || msg.key?.remoteJid?.endsWith("@g.us"))
+    if (!phone || !text || remoteJid.endsWith("@g.us"))
       return NextResponse.json({ ok: true });
 
     console.log(`[Webhook] Mensagem de ${phone}: ${text.slice(0, 60)}`);
@@ -198,13 +205,13 @@ export async function POST(req: NextRequest) {
 
     if (CLEAR_KEYWORDS.some((k) => lower.includes(k))) {
       await clearSession(phone);
-      await sendMessage(phone, "Conversa reiniciada! Como posso te ajudar? 😊");
+      await sendMessage(sendTo, "Conversa reiniciada! Como posso te ajudar? 😊");
       return NextResponse.json({ ok: true });
     }
 
     if (HUMAN_KEYWORDS.some((k) => lower.includes(k))) {
       await sendMessage(
-        phone,
+        sendTo,
         "Certo! Vou te transferir para um de nossos atendentes agora. Por favor, aguarde um momento. 🙏"
       );
       return NextResponse.json({ ok: true });
@@ -275,17 +282,17 @@ export async function POST(req: NextRequest) {
     await saveContext(phone, novoContext);
 
     // Envia resposta ao cliente
-    console.log(`[Webhook] enviando mensagem para ${phone}`);
-    await sendMessage(phone, result.reply);
+    console.log(`[Webhook] enviando mensagem para ${sendTo}`);
+    await sendMessage(sendTo, result.reply);
     console.log(`[Webhook] mensagem enviada`);
 
     // Envia catálogo se solicitado
-    if (result.enviarCatalogo) await sendCatalog(phone);
+    if (result.enviarCatalogo) await sendCatalog(sendTo);
 
     // Envia contato de atacado se solicitado
     if (result.enviarContatoAtacado) {
       const numeroAtacado = (await getSetting<string>("whatsapp_atacado_numero")) ?? "+595985254396";
-      await sendContact(phone, "Atendente Santa Clara", numeroAtacado);
+      await sendContact(sendTo, "Atendente Santa Clara", numeroAtacado);
     }
 
     // Salva pedido quando completo
@@ -298,16 +305,24 @@ export async function POST(req: NextRequest) {
       await upsertContact(phone, nomeF, emailF);
       await clearSession(phone);
       if (orderId) {
+        const orderTotal = carrinhoFinal.reduce((s, i) => s + i.preco * i.quantidade, 0);
+        const code = orderId.slice(0, 8).toUpperCase();
+        const itemsText = carrinhoFinal.map((i) => `• ${i.nome} x${i.quantidade} — R$ ${(i.preco * i.quantidade).toFixed(2).replace(".", ",")}`).join("\n");
+        const entregaLabel = tipoF === "retirada" ? "Retirada no balcão — Ciudad del Este" : `Entrega: ${enderecoF}`;
+
         sendNewOrderAdminEmail({
           orderId,
           channel: "whatsapp",
           customerName: nomeF,
           customerContact: emailF || phone,
           items: carrinhoFinal.map((i) => ({ name: i.nome, quantity: i.quantidade, price: i.preco })),
-          total: carrinhoFinal.reduce((s, i) => s + i.preco * i.quantidade, 0),
+          total: orderTotal,
           tipoEntrega: tipoF,
           enderecoEntrega: enderecoF,
         }).catch((err) => console.error("[Webhook] Admin email error:", err));
+
+        sendMessage("595992959689", `🛒 *Novo Pedido #${code}* (WhatsApp)\n\n👤 *Cliente:* ${nomeF}\n📞 *WhatsApp:* ${phone}\n\n${itemsText}\n\n💰 *Total:* R$ ${orderTotal.toFixed(2).replace(".", ",")}\n📦 *Entrega:* ${entregaLabel}`)
+          .catch((err) => console.error("[Webhook] Admin WhatsApp error:", err));
       }
       console.log(`[Webhook] Pedido finalizado para ${phone}`);
     }
